@@ -297,3 +297,44 @@ ecosystem.
 sandmark's own dune — it was apparently abandoned. It uses an in-memory
 Irmin store with no trace file, but its `Irmin.Info.v` API is
 incompatible with irmin 3.x and would require adaptation.
+
+---
+
+## macrobenchmarks: no source adaptations
+
+**Affects:** `macrobenchmarks/` (alt-ergo, coq, cpdf, cubicle, frama-c, menhir)
+
+These benchmarks install external tools via opam and benchmark the installed
+binary — there are no local source files to adapt. The build scripts
+(`<tool>.build.sh`) and input data files (`.why`, `.v`, `.pdf`, `.cub`, `.c`,
+`.mly`) are taken from sandmark's `benchmarks/<tool>/` directories unchanged.
+
+The only adaptation is the build approach: sandmark used dune aliases and
+project-level dependencies to build these tools; the ported versions use
+`opam install <tool> -y` (into the per-runtime switch created by
+`opam-compiler`) and copy the resulting binary.
+
+See `BENCHMARK_INCOMPATIBILITIES.md` for version constraints (cubicle requires
+OCaml < 5.0; frama-c is blocked by transitive deps on OCaml < 5.5).
+
+---
+
+## weak_htbl: Hashtbl.S signature change (OCaml 5.6+)
+
+**Affects:** `simple/simple-tests/weak_htbl.ml`
+
+OCaml 5.6 (trunk) added `find_and_remove` and `find_and_replace` to
+`Hashtbl.S`. The original `HofM` functor was constrained as
+`: Hashtbl.S with type key = M.key`, requiring it to provide every function
+in the `Hashtbl.S` signature. This broke on trunk:
+
+```
+Error: Signature mismatch:
+       The value find_and_remove is required but not provided
+       The value find_and_replace is required but not provided
+```
+
+**Fix:** Changed `HofM`'s signature constraint from `Hashtbl.S` to the local
+`HashS` (the minimal signature that `Test` actually uses: `create`, `clear`,
+`add`, `replace`, `remove`, `find`, `iter`). This avoids depending on the
+full `Hashtbl.S` signature and works across all OCaml versions (4.14+).

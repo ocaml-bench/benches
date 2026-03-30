@@ -7,8 +7,8 @@ Tested runtimes (as of 2026-03-17):
 - **OCaml trunk** — 5.6.0+dev (commit `02ee646`)
 - **OxCaml trunk** — Jane Street fork (commit `068b255`)
 
-101 benchmarks total across 10 suites (counting each (benchmark, arg-set) pair
-for the stdlib and simple-tests multi-dispatch benchmarks).
+101 sequential/multicore benchmarks across 10 suites, plus 12 macrobenchmarks
+across 6 suites (counting each (benchmark, arg-set) pair).
 
 Note: compatibility matrix below reflects the state as of 2026-03-17 (81
 benchmarks). The 20 newly ported stdlib/ and simple-tests/ benchmarks have
@@ -95,6 +95,36 @@ differences in early OCaml 5 stdlib.
 
 ---
 
+## Package / System Dependency Issues (2 benchmarks)
+
+### owl_gc (sandmark-with-packages) — system dependencies
+
+The `owl` opam package requires `libopenblas-dev` and `liblapacke-dev` system
+packages. Without root access, `opam install owl` aborts at the depext check.
+Install them manually before building:
+
+```
+sudo apt-get install -y libopenblas-dev liblapacke-dev
+```
+
+Note: the original sandmark port incorrectly used `owl-base` (pure OCaml subset)
+in both the dune file and build script, but the benchmark source uses
+`Owl_dense_matrix_d` and `Owl_dense_ndarray_d` which are only in the full `owl`
+package. This has been corrected.
+
+### contrast (sandmark-with-packages) — camlimages build failure on OCaml 5.4
+
+`camlimages 5.0.5` fails to compile on OCaml 5.4.x:
+
+```
+[ERROR] The compilation of camlimages.5.0.5 failed at "dune build -p camlimages -j 31 @install"
+```
+
+This is an upstream issue — `camlimages` has not been updated for OCaml 5.
+May work on older OCaml versions (4.14, 5.1).
+
+---
+
 ## OCaml 4.14.3 — Multicore Suites Skipped (42 benchmarks)
 
 `OCamlMulticoreBenchmarkSuite` enforces OCaml >= 5. All 41 multicore benchmarks
@@ -108,9 +138,15 @@ them to a non-multicore suite or changing the suite type.
 
 ---
 
-## Infrastructure Workarounds
+## Infrastructure Workarounds (Legacy)
 
-Issues in the build infrastructure (`lib/opam_auto_install.sh`) that required
+> **Note (2026-03-25):** The workarounds below applied to the old
+> `opam_auto_install.sh`-based build approach which created ext-switches with
+> virtual packages. This has been replaced by `opam-compiler`, which creates
+> proper opam switches per runtime. The issues documented here no longer affect
+> new builds but are kept for historical reference.
+
+Issues in the old build infrastructure (`lib/opam_auto_install.sh`) that required
 fixes to support multiple OCaml versions.
 
 ### opam sandbox can't find ext-switch compilers
@@ -180,9 +216,103 @@ Fixed in `test_decompress.ml`. Works with all runtimes.
 
 ---
 
+## Macrobenchmark Incompatibilities
+
+Macrobenchmarks (`macrobenchmarks/`) install real-world tools via opam. Some tools
+have upper-bound OCaml version constraints in their dependency trees, preventing
+installation on newer compilers.
+
+Tested across 5 runtimes (OCaml 4.14.3, 5.1.0, 5.4.1, trunk 5.6.0+dev, OxCaml trunk):
+
+| Tool | 4.14.3 | 5.1.0 | 5.4.1 | trunk | OxCaml | Blocker |
+|---|---|---|---|---|---|---|
+| alt-ergo | FAIL | FAIL | FAIL | OK | FAIL | ocamlbuild sandbox (4.14/5.x); OxCaml locality types |
+| coq | OK | OK | OK | OK | FAIL | OxCaml: ocamlfind `ignore` locality type |
+| cpdf | OK | OK | OK | OK | FAIL | OxCaml: ocamlfind `ignore` locality type |
+| cubicle | FAIL | FAIL | FAIL | FAIL | FAIL | `cubicle → ocaml < 5.0.0`; autotools fails in sandbox on 4.14 |
+| frama-c | FAIL | FAIL | FAIL | FAIL | FAIL | `why3 → ocaml < 5.5`; depext `graphviz` on 4.14/5.x |
+| menhir | OK | OK | OK | OK | FAIL | OxCaml: ocamlfind `ignore` locality type |
+
+Incompatible benchmarks fail at the opam install step and are skipped automatically
+by `running-ng` (warning logged, empty log file produced).
+
+### Failure details
+
+**alt-ergo on 4.14.3 / 5.1.0 / 5.4.1:** Multiple autotools-based transitive deps
+fail in ext-switches. `ocamlbuild` (required by `logs → hmap → dolmen`) is now
+built from source (stub in ext-compiler-repo + `_build_ocamlbuild_for_switch`),
+but `ocplib-simplex 0.4.1` (required by `alt-ergo-lib`) has a broken `configure`
+that truncates long compiler paths into invalid Makefile lines (`missing separator`
+error). On trunk (5.6+), opam resolves alt-ergo 2.4.3 which avoids these deps
+entirely. Pinning to `alt-ergo.2.4.3` on older OCaml still hits `ocplib-simplex`.
+The sandbox is now disabled for ext-switch installs (`wrap-build-commands=[]`),
+which helps ocamlbuild but not the configure path-truncation bug.
+
+**cubicle on 4.14.3:** Even though cubicle's opam constraint allows 4.14, its
+`autotools`/`m4` build fails in the sandbox (`autom4te: error: m4 failed`).
+On 5.x+: hard `ocaml < 5.0.0` constraint.
+
+**frama-c on all runtimes:** On trunk/5.x: `why3 1.8.2 → ocaml < 5.5` and
+`ppxlib → ocaml < 5.5.0`. On 4.14.3: version constraints are satisfied, but
+`ocplib-simplex 0.4.1` (via `alt-ergo-free`) and `why3 1.8.2` both have broken
+autotools `configure` scripts that truncate long compiler paths into invalid
+Makefile lines. System deps (`graphviz`, `libgtksourceview-3.0-dev`) are handled
+by `--assume-depexts`.
+
+**OxCaml (all tools):** `ocamlfind`'s `topfind.ml` uses `ignore` which is
+incompatible with OxCaml's `string @ local -> unit` locality annotation.
+Ocamlfind fails to build, blocking all subsequent opam installs.
+
+### Autotools configure truncates long compiler paths
+
+**Affects:** alt-ergo (ocplib-simplex), frama-c (why3, ocplib-simplex) on all runtimes
+
+Autotools-based packages generate `Makefile` via `./configure`.  When the OCaml
+compiler lives in a long path like `/tmp/running-ng-ocaml-toolchains/commit-.../
+install/lib/ocaml`, the generated `OCAMLLIB` variable gets split across lines,
+producing `Makefile:32: *** missing separator` errors.  This affects
+`ocplib-simplex 0.4.1` (Makefile-based, no dune) and `why3 1.8.2` (also
+Makefile-based for its `byte` target).
+
+**Workaround:** None yet.  A possible fix would be to symlink the toolchain to a
+shorter path (e.g. `/tmp/rng-tc/<hash>`) before building.
+
+### ocamlfind native code (findlib_dynload.cmxa)
+
+**Affects:** coq (rocq-runtime) in ext-switches
+
+`rocq-runtime` links against `findlib_dynload.cmxa` (native-code findlib). The
+`_build_ocamlfind_for_switch()` helper in `opam_auto_install.sh` originally only
+ran `make all` (bytecode), producing `.cma` but not `.cmxa` files.
+
+**Fix:** Added `make opt` step to build native-code archives.
+
+### csexp permission denied in ext-switches
+
+**Affects:** alt-ergo (and any tool needing csexp) in ext-switches
+
+`_build_dune_configurator_for_switch()` copies csexp files from dune's build
+output, which has read-only permissions. When opam later tries to install the
+csexp stub package, it can't overwrite the read-only files.
+
+**Fix:** Added `chmod u+w` after copying dune-built files (csexp, dune-configurator, num).
+
+### dllzarith.so not found in opam sandbox (bytecode linking)
+
+**Affects:** coq (rocq-runtime builds rocqworker.bc which needs dllzarith.so)
+
+opam's build sandbox clears `CAML_LD_LIBRARY_PATH`. The bytecode linker
+(`ocamlc`) falls back to the compiler's `ld.conf` to find stub libraries, but
+the ext-switch compiler's `ld.conf` only has relative paths (`./stublibs`, `.`)
+which don't resolve inside the sandbox.
+
+**Fix:** During ext-switch creation, append the switch's absolute stublibs path
+(`$OPAMROOT/$switch/lib/stublibs`) to the compiler's `ld.conf`.
+
+---
+
 ## Key Files
 
-- `lib/opam_auto_install.sh` — ext-switch setup, virtual packages, from-source
-  builds (ocamlfind, dune-configurator, num), compiler version locking
+- `lib/opam_auto_install.sh` — legacy ext-switch setup (no longer used by new build scripts)
 - `~/running-ng/src/running/config/gc_sweep_all_versions.yml` — sweep config for all 5 runtimes
-- `~/run_gc_sweep_all_versions.sh` — runner script (designed for `screen`)
+- `~/running-ng/src/running/config/ocaml_gc_sweep_example.yml` — default sweep config

@@ -6,13 +6,14 @@ This repo is intended to be referenced from `running-ng` configs via absolute pa
 
 ## Directory Layout
 
-Benchmarks are organised into three top-level groups:
+Benchmarks are organised into four top-level groups:
 
 ```text
 benches/
-  simple/         # stdlib / unix only; single build script, no generated data
-  with_deps/      # require dune multi-library builds or generated input data
-  with_packages/  # require external opam packages (zarith, lwt, decompress, yojson, …)
+  simple/           # stdlib / unix only; single build script, no generated data
+  with_deps/        # require dune multi-library builds or generated input data
+  with_packages/    # require external opam packages (zarith, lwt, decompress, yojson, …)
+  macrobenchmarks/  # real-world tools installed via opam; benchmark the installed binary
 ```
 
 Each benchmark lives in its own subfolder:
@@ -29,6 +30,11 @@ benches/
       <source files ...>
       <benchmark-name>.build.sh       # builds the benchmark binary
       <benchmark-name>.build.deps.sh  # generates runtime-independent input data
+
+  macrobenchmarks/
+    <tool-name>/
+      <tool-name>.build.sh         # installs via opam and copies the binary
+      <input files ...>            # workload inputs (.why, .v, .mly, .cub, …)
 ```
 
 ### `build.deps.sh` convention
@@ -40,7 +46,8 @@ binary.
 
 Key properties:
 - `build.deps.sh` receives the same env vars as `build.sh` (in particular
-  `OCAML_EXECUTABLE` and `RUNNING_OCAML_BENCH_DIR`).
+  `RUNNING_OCAML_BENCH_DIR`). The opam switch is activated, so compiler
+  tools are on `PATH`.
 - Generated data files are placed in the benchmark directory and are
   **runtime-version-independent**: the script skips generation if the file
   already exists, so data is produced once and reused across all compiler
@@ -63,30 +70,108 @@ You can override this in `running-ng` config with `build_script` and `binary`, b
 
 ## Build Script Contract
 
-`running-ng` invokes the build script with these env vars:
+`running-ng` creates an opam switch for each runtime (via `opam-compiler`) and
+activates that switch's environment before invoking each build script. Build
+scripts can therefore assume the compiler (`ocamlopt`), `dune`, and any
+packages installed in the switch are available on `PATH`.
 
-- `OCAML_EXECUTABLE`: selected OCaml executable path.
-- `OCAML_HOME`: runtime prefix (parent of `bin`).
+Environment variables set by `running-ng`:
+
 - `RUNNING_OCAML_OUTPUT`: expected output binary path.
 - `RUNNING_OCAML_BENCH_DIR`: benchmark directory.
 - `RUNNING_OCAML_RUNTIME_NAME`: runtime name from config.
+- `RUNNING_OCAML_SWITCH`: opam switch name (if applicable).
 
 Build scripts should write the executable to `RUNNING_OCAML_OUTPUT`.
 
-## Minimal Example Build Script
+## Adding a New Benchmark
+
+Every benchmark follows the same structure. Pick the template that matches
+your benchmark and replace `<name>` with the benchmark name.
+
+### 1. Create the directory and source files
+
+```
+benches/<group>/<name>/
+  <name>.ml          # source file(s)
+  dune               # dune build file
+  dune-project        # (generate-opam-files false)
+  <name>.build.sh    # build script
+```
+
+### 2. Write the dune file
+
+```dune
+(executable
+ (name <name>)
+ (modules <name>)
+ (libraries unix)            ; add libraries as needed
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+```
+
+### 3. Write the build script
+
+All build scripts follow the same pattern. Pick the right template:
+
+**Template A — No external packages** (simple/, multicore/effects, with_deps/):
 
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
+BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(pwd)}"
+OUT="${RUNNING_OCAML_OUTPUT:-${BENCH_DIR}/<name>-${RUNNING_OCAML_RUNTIME_NAME:-runtime}}"
+dune build --root "${BENCH_DIR}" --profile release <name>.exe
+cp "${BENCH_DIR}/_build/default/<name>.exe" "${OUT}"
+chmod +x "${OUT}"
+```
 
-: "${OCAML_EXECUTABLE:?OCAML_EXECUTABLE is required}"
-OUT="${RUNNING_OCAML_OUTPUT:?RUNNING_OCAML_OUTPUT is required}"
-SRC="${RUNNING_OCAML_BENCH_DIR}/almabench.ml"
-OCAMLOPT="$(dirname "$OCAML_EXECUTABLE")/ocamlopt"
+**Template B — With opam packages** (with_packages/, multicore/numerical):
 
-mkdir -p "$(dirname "$OUT")"
-"$OCAMLOPT" -O3 "$SRC" -o "$OUT"
-chmod +x "$OUT"
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(pwd)}"
+OUT="${RUNNING_OCAML_OUTPUT:-${BENCH_DIR}/<name>-${RUNNING_OCAML_RUNTIME_NAME:-runtime}}"
+
+opam install <packages> -y
+
+dune build --root "${BENCH_DIR}" --profile release <name>.exe
+cp "${BENCH_DIR}/_build/default/<name>.exe" "${OUT}"
+chmod +x "${OUT}"
+```
+
+**Template C — Macrobenchmark** (macrobenchmarks/):
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(pwd)}"
+OUT="${RUNNING_OCAML_OUTPUT:-${BENCH_DIR}/<name>-${RUNNING_OCAML_RUNTIME_NAME:-runtime}}"
+
+opam install <tool> -y
+
+TOOL="$(command -v <tool>)" || { echo "<tool> not found after install" >&2; exit 1; }
+cp "${TOOL}" "${OUT}"
+chmod +x "${OUT}"
+```
+
+### 4. Register in the running-ng config
+
+Add the benchmark to the appropriate suite in
+`running-ng/src/running/config/ocaml_gc_sweep_example.yml`:
+
+```yaml
+suites:
+  <suite-name>:
+    programs:
+      <name>:
+        path: "${RUNNING_BENCH_DIR}/<group>/<name>"
+        args: "<arguments>"
+
+benchmarks:
+  <suite-name>:
+    - <name>
 ```
 
 ---
@@ -115,13 +200,15 @@ Build approach is either **ocamlopt** (single `.ml` compiled directly) or **dune
 ### Benchmark Count Summary
 
 Counts are based on the build scripts present in this repo (`~/benches`).
-All programs are registered in `running-ng`'s `ocaml_gc_sweep_example.yml`.
+Sequential and multicore benchmarks are registered in `running-ng`'s `ocaml_gc_sweep_example.yml`.
+Macrobenchmarks are registered in `running-ng`'s `macrobenchmarks.yml`.
 
 | Directory | Programs | Requires |
 |---|---|---|
 | `simple/` | 39 | stdlib / unix |
 | `with_deps/` | 10 | dune multi-lib or generated data |
 | `with_packages/` | 20 | external opam packages |
+| `macrobenchmarks/` | 12 | opam-installed tools (alt-ergo, coq, cpdf, cubicle, frama-c, menhir) |
 | `multicore/multicore-effects` | 17 | OCaml ≥ 5, effects |
 | `multicore/multicore-structures` | 7 | OCaml ≥ 5, stdlib Atomic |
 | `multicore/multicore-numerical` | 23 | OCaml ≥ 5, domainslib |
@@ -132,7 +219,7 @@ All programs are registered in `running-ng`'s `ocaml_gc_sweep_example.yml`.
 | `multicore/graph500par` | 1 | OCaml ≥ 5, domainslib |
 | `multicore/oxcaml-prefetch` | 1 | OxCaml compiler fork |
 | `multicore/multicore-gcroots` | 3 | OCaml ≥ 5, C stubs (`CAML_INTERNALS`) |
-| **Total** | **126** | |
+| **Total** | **138** | |
 
 ### markbench
 
@@ -487,17 +574,17 @@ allocation, lazy evaluation, stacks, finalizers, and weak/ephemeron tables.
 
 ## with_packages benchmarks
 
-Benchmarks in `with_packages/` require external opam packages. **No manual package installation is needed** — each build script auto-installs the required packages via `_opam_auto_install()`.
+Benchmarks in `with_packages/` require external opam packages. **No manual
+package installation is needed** — each build script runs `opam install <pkg> -y`
+to install its dependencies into the active opam switch.
 
-### How auto-install works
+### How package installation works
 
-Each `<benchmark>.build.sh` in `with_packages/` contains a `_opam_auto_install()` function that:
-
-1. **opam-managed compiler** (lives under `~/.opam/<switch>/bin/ocaml`): installs packages directly into that switch.
-2. **External/custom compiler** (built from source): derives a stable switch name from the compiler path + version hash, creates a per-version opam switch with a minimal local repo (so any version string — release or dev — is accepted), and installs packages there.
-3. **Explicit override**: if `OPAM_SWITCH` is set (via `build_env` in the YAML config), uses that switch directly.
-
-The auto-created switches and installed packages are cached and reused across runs.
+`running-ng` creates a dedicated opam switch for each runtime via
+`opam-compiler` (e.g., `running-ng-ocaml-v5.4`). The switch environment is
+activated before invoking the build script, so `opam install` targets the
+correct switch automatically. Packages are cached in the switch and reused
+across benchmark builds for the same runtime.
 
 ### Overriding the opam switch
 
@@ -933,6 +1020,70 @@ Compilation order for both executables: `graphTypes → sparseGraph → generate
 
 ---
 
+## macrobenchmarks
+
+Real-world OCaml applications installed via opam and benchmarked on their own input data. Unlike the other benchmark categories, these do not compile a `.ml` source — each build script installs the tool into an isolated opam switch (via `lib/opam_auto_install.sh`) and copies the resulting binary. Registered in `running-ng`'s `macrobenchmarks.yml`.
+
+**Version compatibility (as of 2026-03):** coq, cpdf, and menhir work on all stock OCaml versions (4.14 through trunk). alt-ergo works only on trunk (transitive dep `ocamlbuild` fails to build in ext-switch sandboxes on older versions). cubicle requires `ocaml < 5.0.0` and its autotools build also fails in sandboxes. frama-c is blocked by `why3 → ocaml < 5.5` on all currently available versions. All tools fail on OxCaml due to `ocamlfind` locality type errors. See `BENCHMARK_INCOMPATIBILITIES.md` for details.
+
+### alt-ergo
+
+- **Source:** sandmark `benchmarks/alt-ergo/`
+- **Build:** opam install `alt-ergo`
+- **Programs:**
+  - `alt_ergo_fill` — Args: `fill.why`
+  - `alt_ergo_yyll` — Args: `yyll.why`
+- **Description:** Alt-Ergo SMT solver on `.why` input files. Exercises the solver's SAT engine, term indexing, and polymorphic hash tables.
+
+### coq
+
+- **Source:** sandmark `benchmarks/coq/`
+- **Build:** opam install `coq` (large dependency tree)
+- **Programs:**
+  - `coqc_basicsyntax` — Args: `BasicSyntax.v`
+  - `coqc_abstractinterpretation` — Args: `AbstractInterpretation.v`
+- **Description:** Coq proof assistant compiling `.v` files. Exercises the kernel type-checker, tactic engine, and universe polymorphism.
+
+### cpdf
+
+- **Source:** sandmark `benchmarks/cpdf/`
+- **Build:** opam install `cpdf`
+- **Programs:**
+  - `cpdf_merge` — Args: `-merge metro_geo.pdf -o /dev/null`
+  - `cpdf_blacktext` — Args: `-blacktext metro_geo.pdf -o /dev/null`
+  - `cpdf_scale` — Args: `scale-to-fit a4landscape -twoup PDFReference16.pdf_toobig -o /dev/null`
+  - `cpdf_squeeze` — Args: `-squeeze PDFReference16.pdf_toobig -o /dev/null`
+- **Description:** PDF manipulation tool. Exercises byte-level I/O, functional data structures, and moderate allocation.
+
+### cubicle
+
+- **Source:** sandmark `benchmarks/cubicle/`
+- **Build:** opam install `cubicle`
+- **Programs:**
+  - `cubicle_german_pfs` — Args: `german_pfs.cub`
+  - `cubicle_szymanski_at` — Args: `szymanski_at.cub`
+- **Description:** Cubicle model checker for parameterised cache coherence and mutual exclusion protocols. Exercises backward reachability, BDD-like data structures, and hash consing.
+
+### frama-c
+
+- **Source:** sandmark `benchmarks/frama-c/`
+- **Build:** opam install `frama-c` (large dependency tree)
+- **Programs:**
+  - `frama_c_slevel` — Args: `-slevel 1000000000 -no-results -no-val-show-progress t.c -val`
+- **Description:** Frama-C abstract interpretation (value analysis) on a C source. Exercises the EVA domain, interval arithmetic, and the CIL AST representation.
+
+### menhir
+
+- **Source:** sandmark `benchmarks/menhir/`
+- **Build:** opam install `menhir`
+- **Programs:**
+  - `menhir_ocamly` — Args: `ocaml.mly --list-errors -la 2 --no-stdlib --lalr`
+  - `menhir_sql_parser` — Args: `-v -t keywords.mly sql-parser.mly --base sql-parser`
+  - `menhir_sysver` — Args: `-v --table sysver.mly`
+- **Description:** Menhir parser generator on real grammars (OCaml, SQL, SystemVerilog). Exercises LR automaton construction, conflict resolution, and error enumeration.
+
+---
+
 ## TODO — Benchmarks Not Yet Added
 
 ### Need external opam packages (not yet integrated)
@@ -964,12 +1115,6 @@ These benchmarks require compiling C foreign stubs alongside OCaml code, which i
 
 ### Need external tool binaries or large external data
 
-These benchmarks invoke external tools (theorem provers, compilers) rather than being self-contained OCaml programs.
-
-- **`alt-ergo`** — Invokes the Alt-Ergo SMT solver on `.why` files.
-- **`coq`** — Invokes the Coq proof assistant on `.v` files.
-- **`cpdf`** — Requires the `cpdf` PDF tool and large PDF inputs.
-- **`cubicle`** — Invokes the Cubicle model checker on `.cub` files.
-- **`frama-c`** — Invokes the Frama-C C analyser on `.c` files.
-- **`menhir`** — Invokes the Menhir parser generator on `.mly` grammar files.
 - **`minilight`** — The sandmark dune file only declares a data file alias (`roomfront.ml.txt`); no executable stanza is present, suggesting the benchmark needs a different integration approach.
+
+**Note:** `alt-ergo`, `coq`, `cpdf`, `cubicle`, `frama-c`, and `menhir` have been ported and are in `macrobenchmarks/` (see below).

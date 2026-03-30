@@ -37,3 +37,4 @@ infer/openssl-capture/
 # Generic temporary/editor files
 *~
 .DS_Store
+a.out
