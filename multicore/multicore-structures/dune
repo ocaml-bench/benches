@@ -1,0 +1,60 @@
+(library
+ (name ms_queue)
+ (modules ms_queue))
+
+(library
+ (name spsc_queue)
+ (modules spsc_queue))
+
+(library
+ (name treiber_stack)
+ (modules treiber_stack))
+
+(executable
+ (name test_queue_parallel)
+ (modules test_queue_parallel)
+ (libraries ms_queue unix)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name test_queue_sequential)
+ (modules test_queue_sequential)
+ (libraries ms_queue unix)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name test_spsc_queue_parallel)
+ (modules test_spsc_queue_parallel)
+ (libraries spsc_queue unix)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name test_spsc_queue_pingpong_parallel)
+ (modules test_spsc_queue_pingpong_parallel)
+ (libraries spsc_queue unix)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name test_spsc_queue_sequential)
+ (modules test_spsc_queue_sequential)
+ (libraries spsc_queue unix)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name test_stack_parallel)
+ (modules test_stack_parallel)
+ (libraries treiber_stack unix)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name test_stack_sequential)
+ (modules test_stack_sequential)
+ (libraries treiber_stack unix)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))

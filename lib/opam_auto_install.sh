@@ -71,7 +71,11 @@ _opam_auto_install() {
         vnum="$("${ocaml_exe}" -vnum 2>/dev/null)"
         canonical="$(readlink -f "${ocaml_exe}")"
         switch_id="$(printf '%s\n%s\n' "${canonical}" "${vnum}" | md5sum | cut -c1-12)"
-        switch="ext-${switch_id}"
+        if [[ -n "${_OPAM_SWITCH_SUFFIX:-}" ]]; then
+          switch="ext-${switch_id}-${_OPAM_SWITCH_SUFFIX}"
+        else
+          switch="ext-${switch_id}"
+        fi
 
         # --- Ensure local repo with virtual packages --------------------------
         local localrepo="${opam_root}/ext-compiler-repo"
@@ -92,6 +96,37 @@ _opam_auto_install() {
         printf 'opam-version: "2.0"\ndepends: ["ocaml-system" {= "%s"} "ocaml-config"]\n' \
           "${vnum}" \
           > "${localrepo}/packages/ocaml/ocaml.${vnum}/opam"
+
+        # --- Stub packages for ALL ext-switches -----------------------------------
+        # These packages fail to build in opam's sandbox because the sandbox
+        # doesn't have the ext-switch compiler on PATH.  We add stubs to the
+        # local repo and build the real binaries/libraries from source below.
+
+        # ocamlbuild: configure generates ocamlbuild_config.ml which needs
+        # ocamlopt on PATH to detect native code support.
+        for _ob_ver in 0.14.3 0.15.0 0.16.1; do
+          mkdir -p "${localrepo}/packages/ocamlbuild/ocamlbuild.${_ob_ver}"
+          cat > "${localrepo}/packages/ocamlbuild/ocamlbuild.${_ob_ver}/opam" <<'STUBEOF'
+opam-version: "2.0"
+synopsis: "Stub ocamlbuild for ext-switches — real binary built separately"
+build: []
+install: []
+depends: ["ocaml"]
+STUBEOF
+        done
+
+        # dune-site: needs dune-private-libs.dune-section library which the
+        # dune stub doesn't provide.  Packages like alt-ergo pull it in.
+        # The stub satisfies dependency resolution; dune-site isn't needed
+        # at runtime for the benchmarks we run.
+        mkdir -p "${localrepo}/packages/dune-site/dune-site.3.21.1"
+        cat > "${localrepo}/packages/dune-site/dune-site.3.21.1/opam" <<'STUBEOF'
+opam-version: "2.0"
+synopsis: "Stub dune-site for ext-switches"
+build: []
+install: []
+depends: ["ocaml"]
+STUBEOF
 
         # --- OxCaml: stub ocamlfind in local repo -----------------------------
         # OxCaml's locality modes break ocamlfind's use of `ignore`.
@@ -124,7 +159,7 @@ STUBEOF
           # build.  dune is already available on the system PATH so the stubs
           # just satisfy opam dependency resolution.
           local dune_ver="3.21.1"
-          for dune_pkg in dune dune-configurator dune-private-libs dune-secondary; do
+          for dune_pkg in dune dune-configurator dune-private-libs dune-secondary dune-site; do
             mkdir -p "${localrepo}/packages/${dune_pkg}/${dune_pkg}.${dune_ver}"
             cat > "${localrepo}/packages/${dune_pkg}/${dune_pkg}.${dune_ver}/opam" <<DUNESTUB
 opam-version: "2.0"
@@ -169,6 +204,21 @@ DUNESTUB
               exit 1
             fi
           }
+        fi
+
+        # --- Register switch stublibs in compiler's ld.conf -------------------
+        # The bytecode linker (ocamlc) reads ld.conf to find C stub libraries
+        # (dll*.so).  opam's sandbox clears CAML_LD_LIBRARY_PATH, so packages
+        # that link bytecode executables (e.g. rocq-runtime's rocqworker.bc
+        # needing dllzarith.so) fail unless the path is in ld.conf.
+        local _switch_stublibs="${opam_root}/${switch}/lib/stublibs"
+        local _ld_conf="${ocaml_bin_dir}/../lib/ocaml/ld.conf"
+        if [[ -f "${_ld_conf}" ]]; then
+          mkdir -p "${_switch_stublibs}"
+          if ! grep -qFx "${_switch_stublibs}" "${_ld_conf}" 2>/dev/null; then
+            echo "${_switch_stublibs}" >> "${_ld_conf}"
+            echo "Added ${_switch_stublibs} to ${_ld_conf}" >&2
+          fi
         fi
 
         # --- OxCaml: ensure real ocamlfind binary in the switch ---------------
@@ -246,6 +296,12 @@ DUNESTUB
             _build_num_for_switch "${switch}" "${opam_root}" "${ocaml_bin_dir}"
           fi
 
+          # Build ocamlbuild from source (stub was installed by ext-compiler-repo).
+          if [[ ! -x "${switch_bin}/ocamlbuild" ]]; then
+            echo "Building ocamlbuild for OxCaml switch..." >&2
+            _build_ocamlbuild_for_switch "${switch}" "${opam_root}" "${ocaml_bin_dir}"
+          fi
+
         else
           # --- Stock OCaml ext switch: ensure real ocamlfind ----------------------
           # OxCaml stubs in ext-compiler-repo may shadow the real ocamlfind.
@@ -293,6 +349,12 @@ DUNESTUB
             echo "Building num for stock OCaml ext switch..." >&2
             _build_num_for_switch "${switch}" "${opam_root}" "${ocaml_bin_dir}"
           fi
+
+          # Build ocamlbuild from source (stub was installed by ext-compiler-repo).
+          if [[ ! -x "${switch_bin}/ocamlbuild" ]]; then
+            echo "Building ocamlbuild for stock OCaml ext switch..." >&2
+            _build_ocamlbuild_for_switch "${switch}" "${opam_root}" "${ocaml_bin_dir}"
+          fi
         fi
         ;;
     esac
@@ -326,10 +388,24 @@ DUNESTUB
     # For ext-switches, add an explicit "ocaml.${vnum}" constraint to prevent
     # opam from upgrading the compiler via the default repo when resolving
     # transitive dependencies (e.g. domainslib -> saturn -> ocaml >= 5.2).
+    # --assume-depexts: skip system package checks (e.g. conf-graphviz)
+    # that would abort the install when we can't run apt-get.
     if [[ "${switch}" == ext-* && -n "${vnum}" ]]; then
-      "${OPAM}" install --switch "${switch}" --yes ${install_pkgs} "ocaml.${vnum}" >&2
+      # Disable sandbox for ext-switch installs: opam's bubblewrap sandbox
+      # doesn't have the ext-switch compiler on PATH, which breaks Makefile-
+      # based packages (ocamlbuild, ocplib-simplex, why3, etc.) that invoke
+      # bare ocamlc/ocamlopt.  The compiler is already on PATH in our shell.
+      local _saved_wrap=""
+      _saved_wrap="$("${OPAM}" option wrap-build-commands --switch "${switch}" 2>/dev/null)" || true
+      "${OPAM}" option wrap-build-commands='[]' --switch "${switch}" 2>/dev/null || true
+      "${OPAM}" option wrap-install-commands='[]' --switch "${switch}" 2>/dev/null || true
+      "${OPAM}" install --switch "${switch}" --yes --assume-depexts ${install_pkgs} "ocaml.${vnum}" >&2
+      # Restore sandbox settings.
+      if [[ -n "${_saved_wrap}" && "${_saved_wrap}" != "[]" ]]; then
+        "${OPAM}" option wrap-build-commands="${_saved_wrap}" --switch "${switch}" 2>/dev/null || true
+      fi
     else
-      "${OPAM}" install --switch "${switch}" --yes ${install_pkgs} >&2
+      "${OPAM}" install --switch "${switch}" --yes --assume-depexts ${install_pkgs} >&2
     fi
   fi
 
@@ -353,6 +429,14 @@ DUNESTUB
   export PATH="${opam_root}/${switch}/bin:${PATH}"
   export PATH="${ocaml_bin_dir}:${PATH}"
   export OCAMLPATH="${opam_root}/${switch}/lib${OCAMLPATH:+:${OCAMLPATH}}"
+
+  # Ensure bytecode linker can find C stubs (e.g. dllzarith.so).
+  # opam's sandbox clears CAML_LD_LIBRARY_PATH, so packages that link
+  # bytecode executables (like rocq-runtime's rocqworker.bc) fail.
+  local _stublibs="${opam_root}/${switch}/lib/stublibs"
+  if [[ -d "${_stublibs}" ]]; then
+    export CAML_LD_LIBRARY_PATH="${_stublibs}${CAML_LD_LIBRARY_PATH:+:${CAML_LD_LIBRARY_PATH}}"
+  fi
 }
 
 # Build ocamlfind from source using a stock OCaml compiler and install it
@@ -420,19 +504,38 @@ _build_ocamlfind_for_switch() {
     return 0
   fi
 
-  # Build with stock OCaml, install into the OxCaml switch prefix.
+  # Build ocamlfind and install into the ext switch prefix.
   # The key settings: -sitelib and -config point to the ext switch so that
   # `ocamlfind install` targets the correct lib directory.
+  #
+  # When possible, we build with the TARGET compiler directly so that .cmi
+  # and .cmxa files are ABI-compatible with packages compiled in the switch
+  # (e.g. rocq-runtime linking findlib_dynload.cmxa).  For OxCaml targets
+  # where ocamlfind may not compile, we fall back to stock OCaml.
+  local build_compiler="${stock_ocaml}"
+  if [[ -n "${target_bin_dir}" && -x "${target_bin_dir}/ocamlopt" ]]; then
+    # Test that the target compiler can actually compile a trivial .ml file.
+    local _test_dir
+    _test_dir="$(mktemp -d)"
+    echo 'let () = ()' > "${_test_dir}/test.ml"
+    if (cd "${_test_dir}" && "${target_bin_dir}/ocamlopt" test.ml -o test.exe) 2>/dev/null; then
+      build_compiler="${target_bin_dir}"
+      echo "  Building ocamlfind with target compiler (${target_bin_dir})" >&2
+    fi
+    rm -rf "${_test_dir}"
+  fi
+
   (
     cd "${srcdir}"
-    PATH="${stock_ocaml}:${PATH}" \
+    PATH="${build_compiler}:${PATH}" \
       ./configure \
         -bindir "${switch_prefix}/bin" \
         -sitelib "${switch_prefix}/lib" \
         -mandir "${switch_prefix}/man" \
         -config "${switch_prefix}/lib/findlib.conf"
-    PATH="${stock_ocaml}:${PATH}" make all
-    PATH="${stock_ocaml}:${PATH}" make install
+    PATH="${build_compiler}:${PATH}" make all
+    PATH="${build_compiler}:${PATH}" make opt
+    PATH="${build_compiler}:${PATH}" make install
   ) >&2
 
   # Fix findlib.conf: the configure step bakes in the stock OCaml stdlib path
@@ -521,6 +624,7 @@ _build_dune_configurator_for_switch() {
   # Install csexp into ext switch
   mkdir -p "${switch_lib}/csexp"
   cp "${csexp_src}"/_build/install/default/lib/csexp/* "${switch_lib}/csexp/"
+  chmod u+w "${switch_lib}/csexp"/* 2>/dev/null || true
   echo "  csexp installed into ${switch_lib}/csexp/" >&2
 
   # --- Build dune-configurator with OxCaml ---
@@ -546,6 +650,8 @@ _build_dune_configurator_for_switch() {
   cp "${src_lib}/dune-package" "${switch_lib}/dune-configurator/"
   cp "${src_lib}/opam" "${switch_lib}/dune-configurator/" 2>/dev/null || true
   cp "${src_lib}"/.private/* "${switch_lib}/dune-configurator/.private/" 2>/dev/null || true
+  chmod u+w "${switch_lib}/dune-configurator"/* 2>/dev/null || true
+  chmod u+w "${switch_lib}/dune-configurator/.private"/* 2>/dev/null || true
 
   # Create dune META with configurator sub-package redirect so packages
   # using the old name "dune.configurator" can find it.
@@ -630,17 +736,84 @@ _build_num_for_switch() {
   # Use -rL to dereference symlinks (dune install tree uses symlinks
   # back into _build/ which won't survive tmpdir cleanup).
   cp -rL "${install_base}/num" "${switch_lib}/"
+  find "${switch_lib}/num" -type f -exec chmod u+w {} + 2>/dev/null || true
 
   # Install num_top if present (toplevel support).
   if [[ -d "${install_base}/num_top" ]]; then
     cp -rL "${install_base}/num_top" "${switch_lib}/"
+    find "${switch_lib}/num_top" -type f -exec chmod u+w {} + 2>/dev/null || true
   fi
 
   # Install stublibs (C stubs for num's native code).
   if [[ -d "${install_base}/stublibs" ]]; then
     mkdir -p "${switch_lib}/stublibs"
     cp -L "${install_base}/stublibs"/* "${switch_lib}/stublibs/" 2>/dev/null || true
+    chmod u+w "${switch_lib}/stublibs"/* 2>/dev/null || true
   fi
 
   echo "  num installed into ${switch_lib}/num/" >&2
+}
+
+# Build ocamlbuild from source and install it into the given opam switch.
+# ocamlbuild's configure/make generates ocamlbuild_config.ml which needs
+# ocamlopt on PATH to detect native code support.  opam's sandbox doesn't
+# have ext-switch compilers, so the generated file has empty let bindings.
+# We build outside the sandbox with the correct compiler on PATH.
+_build_ocamlbuild_for_switch() {
+  local switch="$1"
+  local opam_root="$2"
+  local compiler_bin_dir="$3"
+  local switch_prefix="${opam_root}/${switch}"
+
+  local tmpdir
+  tmpdir="$(mktemp -d)"
+  trap "rm -rf '${tmpdir}'" RETURN
+
+  local version="0.15.0"
+  local url="https://github.com/ocaml/ocamlbuild/archive/refs/tags/${version}.tar.gz"
+
+  local dl_cmd=""
+  if command -v curl >/dev/null 2>&1; then
+    dl_cmd="curl -sSL"
+  elif command -v wget >/dev/null 2>&1; then
+    dl_cmd="wget -qO-"
+  else
+    echo "WARNING: Neither curl nor wget found. Cannot download ocamlbuild." >&2
+    return 0
+  fi
+
+  echo "  Downloading ocamlbuild ${version}..." >&2
+  ${dl_cmd} "${url}" | tar xz -C "${tmpdir}"
+
+  local srcdir="${tmpdir}/ocamlbuild-${version}"
+  if [[ ! -d "${srcdir}" ]]; then
+    echo "WARNING: ocamlbuild source not found after extraction." >&2
+    return 0
+  fi
+
+  echo "  Building ocamlbuild with target compiler..." >&2
+  (
+    cd "${srcdir}"
+    PATH="${compiler_bin_dir}:${PATH}" \
+      make -f configure.make \
+        OCAMLBUILD_PREFIX="${switch_prefix}" \
+        OCAMLBUILD_BINDIR="${switch_prefix}/bin" \
+        OCAMLBUILD_LIBDIR="${switch_prefix}/lib" \
+        OCAMLBUILD_MANDIR="${switch_prefix}/man" \
+        OCAML_NATIVE=true \
+        OCAML_NATIVE_TOOLS=true \
+        all
+    PATH="${compiler_bin_dir}:${PATH}" make all
+    PATH="${compiler_bin_dir}:${PATH}" make install \
+      CHECK_IF_PREINSTALLED=false \
+      BINDIR="${switch_prefix}/bin" \
+      LIBDIR="${switch_prefix}/lib" \
+      MANDIR="${switch_prefix}/man"
+  ) >&2
+
+  if [[ -x "${switch_prefix}/bin/ocamlbuild" ]]; then
+    echo "  ocamlbuild installed into ${switch_prefix}/bin/" >&2
+  else
+    echo "WARNING: ocamlbuild build completed but binary not found." >&2
+  fi
 }

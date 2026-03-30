@@ -1,0 +1,4 @@
+(executable
+ (name fannkuchredux)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))

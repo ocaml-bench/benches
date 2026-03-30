@@ -1,0 +1,4 @@
+(executable
+ (name hamming)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))

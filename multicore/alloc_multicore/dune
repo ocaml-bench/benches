@@ -1,0 +1,4 @@
+(executable
+ (name alloc_multicore)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))

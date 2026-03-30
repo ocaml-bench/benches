@@ -1,0 +1,60 @@
+(executable
+ (name array_bench)
+ (modules array_bench)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name big_array_bench)
+ (modules big_array_bench)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name bytes_bench)
+ (modules bytes_bench)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name hashtbl_bench)
+ (modules hashtbl_bench)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name map_bench)
+ (modules map_bench)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name pervasives_bench)
+ (modules pervasives_bench)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name set_bench)
+ (modules set_bench)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name stack_bench)
+ (modules stack_bench)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name str_bench)
+ (modules str_bench)
+ (libraries str)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name string_bench)
+ (modules string_bench)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))

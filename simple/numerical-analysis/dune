@@ -1,0 +1,36 @@
+(executable
+ (name fft)
+ (modules fft)
+ (libraries unix)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name crout_decomposition)
+ (modules crout_decomposition)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name durand_kerner_aberth)
+ (modules durand_kerner_aberth)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name levinson_durbin)
+ (modules levinson_durbin levinson_durbin_dataset)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name naive_multilayer)
+ (modules naive_multilayer naive_multilayer_dataset)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name qr_decomposition)
+ (modules qr_decomposition)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))

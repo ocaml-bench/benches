@@ -1,0 +1,59 @@
+(executable
+ (name alloc)
+ (modules alloc)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name finalise)
+ (modules finalise)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name lazy_primes)
+ (modules lazy_primes)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name lazylist)
+ (modules lazylist)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name lists)
+ (modules lists)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name morestacks)
+ (modules morestacks)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name stacks)
+ (modules stacks)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name stress)
+ (modules stress)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name weak_htbl)
+ (modules weak_htbl)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name weakretain)
+ (modules weakretain)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))

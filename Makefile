@@ -1,6 +1,6 @@
-.PHONY: clean clean-dune clean-with-deps
+.PHONY: clean clean-dune clean-with-deps clean-macrobenchmarks
 
-clean: clean-dune clean-with-deps
+clean: clean-dune clean-with-deps clean-macrobenchmarks
 	@echo "Cleaning benchmark build artifacts under $(CURDIR)"
 	@find . -type f \
 		-not -path "./.git/*" \
@@ -31,3 +31,14 @@ clean-dune:
 clean-with-deps:
 	@echo "Cleaning generated input data under $(CURDIR)/with_deps"
 	@rm -f with_deps/graph500seq/edges.data
+	@rm -f with_deps/benchmarksgame/input*.txt
+	@rm -f multicore/graph500par/edges.data
+
+# Remove generated output files from macrobenchmark runs.
+clean-macrobenchmarks:
+	@echo "Cleaning generated macrobenchmark outputs under $(CURDIR)/macrobenchmarks"
+	@rm -f macrobenchmarks/menhir/sysver.automaton
+	@rm -f macrobenchmarks/menhir/sysver.conflicts
+	@rm -f macrobenchmarks/menhir/sysver.ml
+	@rm -f macrobenchmarks/coq/*.glob
+	@rm -f macrobenchmarks/coq/.*.aux

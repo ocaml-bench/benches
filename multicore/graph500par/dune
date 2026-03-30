@@ -1,0 +1,19 @@
+(library
+ (name graph500par_lib)
+ (modules graphTypes sparseGraph generate)
+ (libraries domainslib unix)
+ (wrapped false))
+
+(executable
+ (name kernel1_run_multicore)
+ (modules kernel1Par kernel1_run_multicore)
+ (libraries graph500par_lib domainslib unix)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name gen)
+ (modules gen)
+ (libraries graph500par_lib domainslib unix)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))

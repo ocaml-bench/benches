@@ -1,0 +1,4 @@
+(executable
+ (name sequence_cps)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))

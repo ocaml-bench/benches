@@ -1,0 +1,6 @@
+(executable
+ (name test_sched)
+ (modules ms_sched test_sched)
+ (libraries saturn_lockfree)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))

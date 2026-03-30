@@ -1,0 +1,5 @@
+(executable
+ (name pingpong_multicore)
+ (libraries domainslib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))

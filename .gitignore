@@ -10,8 +10,16 @@
 *.cmti
 *.annot
 
-# Benchmark data
+# Generated benchmark input data (recreated by build.deps.sh scripts)
 *.data
+with_deps/benchmarksgame/input*.txt
+
+# Generated macrobenchmark outputs (produced by benchmark runs, not inputs)
+macrobenchmarks/menhir/sysver.automaton
+macrobenchmarks/menhir/sysver.conflicts
+macrobenchmarks/menhir/sysver.ml
+macrobenchmarks/coq/*.glob
+macrobenchmarks/coq/.*.aux
 
 # Dune build artifacts
 _build/

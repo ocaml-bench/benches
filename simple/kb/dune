@@ -1,0 +1,11 @@
+(executable
+ (name kb)
+ (modules kb)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name kb_no_exc)
+ (modules kb_no_exc)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))

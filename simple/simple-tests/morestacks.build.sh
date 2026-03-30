@@ -1,18 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-: "${OCAML_EXECUTABLE:?OCAML_EXECUTABLE is required}"
-OUT="${RUNNING_OCAML_OUTPUT:?RUNNING_OCAML_OUTPUT is required}"
-BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:?RUNNING_OCAML_BENCH_DIR is required}"
-SRC="${BENCH_DIR}/morestacks.ml"
-
-OCAML_BIN_DIR="$(dirname "${OCAML_EXECUTABLE}")"
-OCAMLOPT="${OCAML_BIN_DIR}/ocamlopt"
-
-[[ -x "${OCAMLOPT}" ]] || { echo "ocamlopt not found at ${OCAMLOPT}" >&2; exit 1; }
-[[ -f "${SRC}" ]]      || { echo "Source not found: ${SRC}" >&2; exit 1; }
-
-mkdir -p "$(dirname "${OUT}")"
-"${OCAMLOPT}" -O3 "${SRC}" -o "${OUT}"
+BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(pwd)}"
+OUT="${RUNNING_OCAML_OUTPUT:-${BENCH_DIR}/morestacks-${RUNNING_OCAML_RUNTIME_NAME:-runtime}}"
+dune build --root "${BENCH_DIR}" --profile release morestacks.exe
+cp "${BENCH_DIR}/_build/default/morestacks.exe" "${OUT}"
 chmod +x "${OUT}"
-echo "Built ${OUT} using ${OCAMLOPT}" >&2

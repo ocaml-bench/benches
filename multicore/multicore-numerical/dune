@@ -1,0 +1,152 @@
+(executable
+ (name LU_decomposition)
+ (modules LU_decomposition)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name evolutionary_algorithm)
+ (modules evolutionary_algorithm)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name floyd_warshall)
+ (modules floyd_warshall)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name game_of_life)
+ (modules game_of_life)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name matrix_multiplication)
+ (modules matrix_multiplication)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name mergesort)
+ (modules mergesort)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name nbody)
+ (modules nbody)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name nqueens)
+ (modules nqueens)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name quicksort)
+ (modules quicksort)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name LU_decomposition_multicore)
+ (modules LU_decomposition_multicore)
+ (libraries domainslib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name binarytrees5_multicore)
+ (modules binarytrees5_multicore)
+ (libraries domainslib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name evolutionary_algorithm_multicore)
+ (modules evolutionary_algorithm_multicore)
+ (libraries domainslib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name fannkuchredux_multicore)
+ (modules fannkuchredux_multicore)
+ (libraries domainslib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name floyd_warshall_multicore)
+ (modules floyd_warshall_multicore)
+ (libraries domainslib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name game_of_life_multicore)
+ (modules game_of_life_multicore)
+ (libraries domainslib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name mandelbrot6_multicore)
+ (modules mandelbrot6_multicore)
+ (libraries domainslib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name matrix_multiplication_multicore)
+ (modules matrix_multiplication_multicore)
+ (libraries domainslib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name matrix_multiplication_tiling_multicore)
+ (modules matrix_multiplication_tiling_multicore)
+ (libraries domainslib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name mergesort_multicore)
+ (modules mergesort_multicore)
+ (libraries domainslib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name nbody_multicore)
+ (modules nbody_multicore)
+ (libraries domainslib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name nqueens_multicore)
+ (modules nqueens_multicore)
+ (libraries domainslib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name quicksort_multicore)
+ (modules quicksort_multicore)
+ (libraries domainslib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name spectralnorm2_multicore)
+ (modules spectralnorm2_multicore)
+ (libraries domainslib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+

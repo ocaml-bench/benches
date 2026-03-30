@@ -1,0 +1,6 @@
+(executable
+ (name minilight_multicore)
+ (modules vector3f triangle surfacePoint spatialIndex scene image rayTracer camera minilight_multicore)
+ (libraries domainslib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))

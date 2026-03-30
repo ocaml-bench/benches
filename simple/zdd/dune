@@ -1,0 +1,4 @@
+(executable
+ (name zdd)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))

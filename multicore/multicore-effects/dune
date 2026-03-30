@@ -1,0 +1,102 @@
+(executable
+ (name algorithmic_differentiation)
+ (modules algorithmic_differentiation)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name effect_throughput_perform)
+ (modules effect_throughput_perform)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name effect_throughput_perform_drop)
+ (modules effect_throughput_perform_drop)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name effect_throughput_val)
+ (modules effect_throughput_val)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name eratosthenes)
+ (modules eratosthenes)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name rec_eff_ack)
+ (modules rec_eff_ack)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name rec_eff_evenodd)
+ (modules rec_eff_evenodd)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name rec_eff_fib)
+ (modules rec_eff_fib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name rec_eff_motzkin)
+ (modules rec_eff_motzkin)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name rec_eff_sudan)
+ (modules rec_eff_sudan)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name rec_eff_tak)
+ (modules rec_eff_tak)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name rec_seq_ack)
+ (modules rec_seq_ack)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name rec_seq_evenodd)
+ (modules rec_seq_evenodd)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name rec_seq_fib)
+ (modules rec_seq_fib)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name rec_seq_motzkin)
+ (modules rec_seq_motzkin)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name rec_seq_sudan)
+ (modules rec_seq_sudan)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name rec_seq_tak)
+ (modules rec_seq_tak)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+

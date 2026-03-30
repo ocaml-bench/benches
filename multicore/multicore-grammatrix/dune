@@ -1,0 +1,19 @@
+(library
+ (name grammatrix_lib)
+ (modules utls)
+ (libraries unix)
+ (wrapped false))
+
+(executable
+ (name grammatrix)
+ (modules grammatrix)
+ (libraries grammatrix_lib unix)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name grammatrix_multicore)
+ (modules grammatrix_multicore)
+ (libraries grammatrix_lib domainslib unix)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
