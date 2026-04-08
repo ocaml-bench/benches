@@ -200,7 +200,8 @@ Build approach is either **ocamlopt** (single `.ml` compiled directly) or **dune
 ### Benchmark Count Summary
 
 Counts are based on the build scripts present in this repo (`~/benches`).
-Sequential and multicore benchmarks are registered in `running-ng`'s `ocaml_gc_sweep_example.yml`.
+For macrobenchmarks, each build script installs one tool but runs it as multiple programs with different inputs — the count reflects individual programs.
+Sequential and multicore benchmarks are registered in `running-ng`'s `ocaml_gc_sweep_example.yml` (and `gc_sweep_all_versions.yml`).
 Macrobenchmarks are registered in `running-ng`'s `macrobenchmarks.yml`.
 
 | Directory | Programs | Requires |
@@ -208,7 +209,7 @@ Macrobenchmarks are registered in `running-ng`'s `macrobenchmarks.yml`.
 | `simple/` | 39 | stdlib / unix |
 | `with_deps/` | 10 | dune multi-lib or generated data |
 | `with_packages/` | 20 | external opam packages |
-| `macrobenchmarks/` | 12 | opam-installed tools (alt-ergo, coq, cpdf, cubicle, frama-c, menhir) |
+| `macrobenchmarks/` | 14 | opam-installed tools (alt-ergo, coq, cpdf, cubicle, frama-c, menhir) |
 | `multicore/multicore-effects` | 17 | OCaml ≥ 5, effects |
 | `multicore/multicore-structures` | 7 | OCaml ≥ 5, stdlib Atomic |
 | `multicore/multicore-numerical` | 23 | OCaml ≥ 5, domainslib |
@@ -219,7 +220,7 @@ Macrobenchmarks are registered in `running-ng`'s `macrobenchmarks.yml`.
 | `multicore/graph500par` | 1 | OCaml ≥ 5, domainslib |
 | `multicore/oxcaml-prefetch` | 1 | OxCaml compiler fork |
 | `multicore/multicore-gcroots` | 3 | OCaml ≥ 5, C stubs (`CAML_INTERNALS`) |
-| **Total** | **138** | |
+| **Total** | **140** | |
 
 ### markbench
 
