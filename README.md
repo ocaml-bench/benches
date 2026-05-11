@@ -147,14 +147,14 @@ chmod +x "${OUT}"
 ```
 
 For real-world OCaml applications (alt-ergo, coq, cpdf, menhir, …),
-use the vendored monorepo at [`~/macro-benches/`](https://github.com/udesou/macro-benches),
+use the vendored monorepo at [`~/macro-benches/`](https://github.com/ocaml-bench/macro-benches),
 which builds every tool from a single dune workspace and follows the
 same env-var contract.
 
 ### 4. Register in the running-ng config
 
-Add the benchmark to the appropriate suite in
-`running-ng/src/running/config/ocaml_gc_sweep_example.yml`:
+Add the benchmark to the appropriate suite in the shared micro base
+(`running-ng/src/running/config/base/ocaml/micro_base.yml`):
 
 ```yaml
 suites:
