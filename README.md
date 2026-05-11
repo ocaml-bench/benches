@@ -1,8 +1,11 @@
 # benches
 
-Standalone benchmark sources used by `running-ng`.
+OCaml microbenchmark suite ported from [sandmark](https://github.com/ocaml-bench/sandmark), organised into `simple/`, `with_deps/`, `with_packages/`, and `multicore/`. Each benchmark ships its own `*.build.sh` script honouring a small, well-documented build contract.
 
-This repo is intended to be referenced from `running-ng` configs via absolute paths in suite `programs.<benchmark>.path`.
+Designed to work two ways:
+
+- **Standalone** — activate any opam switch with `dune` on `PATH` and run a benchmark's `*.build.sh` to compile a binary you can execute directly. See [§Build Script Contract](#build-script-contract).
+- **Orchestrated** — used as the benchmark backend for [running-ng](https://github.com/udesou/running-ng), which manages opam switches per OCaml runtime and drives sweeps. See [§Integration With `running-ng`](#integration-with-running-ng).
 
 ## Directory Layout
 
@@ -1018,70 +1021,6 @@ Compilation order for both executables: `graphTypes → sparseGraph → generate
 - **Build:** ocamlfind + domainslib (auto-installed)
 - **Args:** `<num_domains> <chan_size> <total_messages>`; config uses `3 1 1000000`
 - **Description:** Multi-domain channel ping-pong benchmark using `Domainslib.Chan`. A producer sends messages through a pipeline of worker domains, each incrementing a counter before forwarding. Measures channel throughput and domain synchronisation overhead.
-
----
-
-## macrobenchmarks
-
-Real-world OCaml applications installed via opam and benchmarked on their own input data. Unlike the other benchmark categories, these do not compile a `.ml` source — each build script installs the tool into an isolated opam switch (via `lib/opam_auto_install.sh`) and copies the resulting binary. Registered in `running-ng`'s `macrobenchmarks.yml`.
-
-**Version compatibility (as of 2026-03):** coq, cpdf, and menhir work on all stock OCaml versions (4.14 through trunk). alt-ergo works only on trunk (transitive dep `ocamlbuild` fails to build in ext-switch sandboxes on older versions). cubicle requires `ocaml < 5.0.0` and its autotools build also fails in sandboxes. frama-c is blocked by `why3 → ocaml < 5.5` on all currently available versions. All tools fail on OxCaml due to `ocamlfind` locality type errors. See `BENCHMARK_INCOMPATIBILITIES.md` for details.
-
-### alt-ergo
-
-- **Source:** sandmark `benchmarks/alt-ergo/`
-- **Build:** opam install `alt-ergo`
-- **Programs:**
-  - `alt_ergo_fill` — Args: `fill.why`
-  - `alt_ergo_yyll` — Args: `yyll.why`
-- **Description:** Alt-Ergo SMT solver on `.why` input files. Exercises the solver's SAT engine, term indexing, and polymorphic hash tables.
-
-### coq
-
-- **Source:** sandmark `benchmarks/coq/`
-- **Build:** opam install `coq` (large dependency tree)
-- **Programs:**
-  - `coqc_basicsyntax` — Args: `BasicSyntax.v`
-  - `coqc_abstractinterpretation` — Args: `AbstractInterpretation.v`
-- **Description:** Coq proof assistant compiling `.v` files. Exercises the kernel type-checker, tactic engine, and universe polymorphism.
-
-### cpdf
-
-- **Source:** sandmark `benchmarks/cpdf/`
-- **Build:** opam install `cpdf`
-- **Programs:**
-  - `cpdf_merge` — Args: `-merge metro_geo.pdf -o /dev/null`
-  - `cpdf_blacktext` — Args: `-blacktext metro_geo.pdf -o /dev/null`
-  - `cpdf_scale` — Args: `scale-to-fit a4landscape -twoup PDFReference16.pdf_toobig -o /dev/null`
-  - `cpdf_squeeze` — Args: `-squeeze PDFReference16.pdf_toobig -o /dev/null`
-- **Description:** PDF manipulation tool. Exercises byte-level I/O, functional data structures, and moderate allocation.
-
-### cubicle
-
-- **Source:** sandmark `benchmarks/cubicle/`
-- **Build:** opam install `cubicle`
-- **Programs:**
-  - `cubicle_german_pfs` — Args: `german_pfs.cub`
-  - `cubicle_szymanski_at` — Args: `szymanski_at.cub`
-- **Description:** Cubicle model checker for parameterised cache coherence and mutual exclusion protocols. Exercises backward reachability, BDD-like data structures, and hash consing.
-
-### frama-c
-
-- **Source:** sandmark `benchmarks/frama-c/`
-- **Build:** opam install `frama-c` (large dependency tree)
-- **Programs:**
-  - `frama_c_slevel` — Args: `-slevel 1000000000 -no-results -no-val-show-progress t.c -val`
-- **Description:** Frama-C abstract interpretation (value analysis) on a C source. Exercises the EVA domain, interval arithmetic, and the CIL AST representation.
-
-### menhir
-
-- **Source:** sandmark `benchmarks/menhir/`
-- **Build:** opam install `menhir`
-- **Programs:**
-  - `menhir_ocamly` — Args: `ocaml.mly --list-errors -la 2 --no-stdlib --lalr`
-  - `menhir_sql_parser` — Args: `-v -t keywords.mly sql-parser.mly --base sql-parser`
-  - `menhir_sysver` — Args: `-v --table sysver.mly`
-- **Description:** Menhir parser generator on real grammars (OCaml, SQL, SystemVerilog). Exercises LR automaton construction, conflict resolution, and error enumeration.
 
 ---
 
