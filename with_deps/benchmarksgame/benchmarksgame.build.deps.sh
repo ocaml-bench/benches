@@ -6,7 +6,7 @@
 # generated once and shared across all runtime builds.
 set -euo pipefail
 
-BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(pwd)}"
+BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(cd "$(dirname "$0")" && pwd)}"
 INPUT_25M="${BENCH_DIR}/input25000000.txt"
 INPUT_5M="${BENCH_DIR}/input5000000.txt"
 

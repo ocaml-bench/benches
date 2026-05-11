@@ -6,7 +6,7 @@
 # once and shared across all runtime builds.
 set -euo pipefail
 
-BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(pwd)}"
+BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(cd "$(dirname "$0")" && pwd)}"
 EDGES_DATA="${BENCH_DIR}/edges.data"
 
 if [[ -f "${EDGES_DATA}" ]]; then

@@ -2,7 +2,7 @@
 # msort_ints.build.sh — builds the mpl/msort_ints benchmark binary.
 set -euo pipefail
 
-BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(pwd)}"
+BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(cd "$(dirname "$0")" && pwd)}"
 OUT="${RUNNING_OCAML_OUTPUT:-${BENCH_DIR}/msort_ints-${RUNNING_OCAML_RUNTIME_NAME:-runtime}}"
 
 # --- Install domainslib ---------------------------------------------------

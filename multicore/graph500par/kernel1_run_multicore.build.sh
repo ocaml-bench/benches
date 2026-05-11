@@ -2,7 +2,7 @@
 # kernel1_run_multicore.build.sh — requires domainslib + unix
 set -euo pipefail
 
-BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(pwd)}"
+BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(cd "$(dirname "$0")" && pwd)}"
 OUT="${RUNNING_OCAML_OUTPUT:-${BENCH_DIR}/kernel1_run_multicore-${RUNNING_OCAML_RUNTIME_NAME:-runtime}}"
 
 opam install domainslib -y

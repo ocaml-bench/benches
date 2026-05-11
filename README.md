@@ -78,14 +78,16 @@ activates that switch's environment before invoking each build script. Build
 scripts can therefore assume the compiler (`ocamlopt`), `dune`, and any
 packages installed in the switch are available on `PATH`.
 
-Environment variables set by `running-ng`:
+Every build script honors the same env-var contract — the same set used by `~/macro-benches/` — so a script behaves identically whether running-ng invokes it or you run it by hand:
 
-- `RUNNING_OCAML_OUTPUT`: expected output binary path.
-- `RUNNING_OCAML_BENCH_DIR`: benchmark directory.
-- `RUNNING_OCAML_RUNTIME_NAME`: runtime name from config.
-- `RUNNING_OCAML_SWITCH`: opam switch name (if applicable).
+| Variable | Meaning | Fallback when unset |
+|---|---|---|
+| `RUNNING_OCAML_BENCH_DIR` | Directory containing this benchmark's sources | The script's own directory (`$(cd "$(dirname "$0")" && pwd)`) |
+| `RUNNING_OCAML_OUTPUT` | Path where the built binary must be written | `${BENCH_DIR}/<name>-${RUNTIME_NAME}` |
+| `RUNNING_OCAML_RUNTIME_NAME` | Runtime identifier (e.g. `ocaml-5.4.1`) | `runtime` |
+| `RUNNING_OCAML_SWITCH` | Opam switch name (when applicable) | unset |
 
-Build scripts should write the executable to `RUNNING_OCAML_OUTPUT`.
+When running-ng drives the build, it sets all four. When you run the script standalone, the fallbacks resolve to something sensible — usually placing the binary next to the source file — so `bash ./<name>.build.sh` just works.
 
 ## Adding a New Benchmark
 
@@ -115,14 +117,14 @@ benches/<group>/<name>/
 
 ### 3. Write the build script
 
-All build scripts follow the same pattern. Pick the right template:
+All build scripts follow the same pattern: resolve `BENCH_DIR` and `OUT` from the env-var contract (§Build Script Contract), do the build, copy the binary to `OUT`. Pick the right template:
 
 **Template A — No external packages** (simple/, multicore/effects, with_deps/):
 
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
-BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(pwd)}"
+BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(cd "$(dirname "$0")" && pwd)}"
 OUT="${RUNNING_OCAML_OUTPUT:-${BENCH_DIR}/<name>-${RUNNING_OCAML_RUNTIME_NAME:-runtime}}"
 dune build --root "${BENCH_DIR}" --profile release <name>.exe
 cp "${BENCH_DIR}/_build/default/<name>.exe" "${OUT}"
@@ -134,7 +136,7 @@ chmod +x "${OUT}"
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
-BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(pwd)}"
+BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(cd "$(dirname "$0")" && pwd)}"
 OUT="${RUNNING_OCAML_OUTPUT:-${BENCH_DIR}/<name>-${RUNNING_OCAML_RUNTIME_NAME:-runtime}}"
 
 opam install <packages> -y
@@ -144,20 +146,10 @@ cp "${BENCH_DIR}/_build/default/<name>.exe" "${OUT}"
 chmod +x "${OUT}"
 ```
 
-**Template C — Macrobenchmark** (macrobenchmarks/):
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(pwd)}"
-OUT="${RUNNING_OCAML_OUTPUT:-${BENCH_DIR}/<name>-${RUNNING_OCAML_RUNTIME_NAME:-runtime}}"
-
-opam install <tool> -y
-
-TOOL="$(command -v <tool>)" || { echo "<tool> not found after install" >&2; exit 1; }
-cp "${TOOL}" "${OUT}"
-chmod +x "${OUT}"
-```
+For real-world OCaml applications (alt-ergo, coq, cpdf, menhir, …),
+use the vendored monorepo at [`~/macro-benches/`](https://github.com/udesou/macro-benches),
+which builds every tool from a single dune workspace and follows the
+same env-var contract.
 
 ### 4. Register in the running-ng config
 

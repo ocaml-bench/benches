@@ -5,7 +5,7 @@
 # if they do not yet exist.
 set -euo pipefail
 
-BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(pwd)}"
+BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(cd "$(dirname "$0")" && pwd)}"
 OUT="${RUNNING_OCAML_OUTPUT:-${BENCH_DIR}/knucleotide3-${RUNNING_OCAML_RUNTIME_NAME:-runtime}}"
 # --- Generate input data if needed (runtime-independent, generated once) ---
 "${BENCH_DIR}/benchmarksgame.build.deps.sh"

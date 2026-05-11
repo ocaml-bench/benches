@@ -2,7 +2,7 @@
 # zarith_pi.build.sh — builds zarith_pi benchmark binary.
 set -euo pipefail
 
-BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(pwd)}"
+BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(cd "$(dirname "$0")" && pwd)}"
 OUT="${RUNNING_OCAML_OUTPUT:-${BENCH_DIR}/zarith_pi-${RUNNING_OCAML_RUNTIME_NAME:-runtime}}"
 
 # --- Install required packages --------------------------------------------
