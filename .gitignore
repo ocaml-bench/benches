@@ -14,12 +14,8 @@
 *.data
 with_deps/benchmarksgame/input*.txt
 
-# Generated macrobenchmark outputs (produced by benchmark runs, not inputs)
-macrobenchmarks/menhir/sysver.automaton
-macrobenchmarks/menhir/sysver.conflicts
-macrobenchmarks/menhir/sysver.ml
-macrobenchmarks/coq/*.glob
-macrobenchmarks/coq/.*.aux
+# Generated benchmark outputs (produced by benchmark runs, not inputs)
+simple/minilight/*.ppm
 
 # Dune build artifacts
 _build/
