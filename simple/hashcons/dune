@@ -1,0 +1,19 @@
+; Vendored copy of backtracking/ocaml-hashcons (hashcons.ml/.mli) pinned here
+; so that only the runtime varies across compiler comparisons.
+(library
+ (name hashcons)
+ (modules hashcons))
+
+(executable
+ (name bench_bdd)
+ (modules bench_bdd)
+ (libraries hashcons)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
+ (name bench_lambda)
+ (modules bench_lambda)
+ (libraries hashcons)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
