@@ -246,6 +246,22 @@ Macrobenchmarks are registered in `running-ng`'s `macrobenchmarks.yml`.
 - **Args:** _(none)_
 - **Description:** Binary Decision Diagram operations (AND, OR, NOT, quantification) on propositional formulae. Pointer-heavy graph structure; exercises major GC and sharing.
 
+### hashcons/bench_bdd
+
+- **Source:** `backtracking`'s quick-and-dirty hash-consing benchmarks, provided in [ocaml-hashcons#19](https://github.com/backtracking/ocaml-hashcons/issues/19). Distinct from the classic `bdd` above: this one is hash-consed and weak-pointer-backed.
+- **Build:** dune; vendors `hashcons.ml`/`.mli` from `backtracking/ocaml-hashcons` as a local library (pinned so only the runtime varies across compiler comparisons).
+- **Args:** `-de-bruijn <N>` (config: `800`) or `-pigeon <N>` (config: `12`). `-v` dumps hash-consing table stats.
+- **Description:** Builds a BDD for a de Bruijn or pigeonhole tautology, exercising hash-consing (weak pointers / ephemerons) and the major-GC pacing that governs how fast unreachable nodes are reclaimed.
+- **Note:** The `-de-bruijn` mode is the one [ocaml/ocaml#13580](https://github.com/ocaml/ocaml/pull/13580) (mark-delay, 5.5) targets — at `N=800` it shows ~1.46× speedup and ~41% lower peak heap on 5.5 vs 5.4. It is highly sensitive to `space_overhead`. `-pigeon` is a milder hash-consing stressor (barely affected by the PR). Runtime scales with `N`, and so does peak RSS.
+
+### hashcons/bench_lambda
+
+- **Source:** same archive as `hashcons/bench_bdd` ([ocaml-hashcons#19](https://github.com/backtracking/ocaml-hashcons/issues/19)).
+- **Build:** dune; shares the vendored `hashcons` library.
+- **Args:** `<N>` — list length to quicksort (config: `6`). `-v` dumps heap + table stats.
+- **Description:** Normalises a quicksort written in the λ-calculus (Church-encoded naturals) over a random list, with hash-consed λ-terms. CPU-bound: heap stays ~8 MB regardless of `N`; runtime grows combinatorially (N=6 ≈ 0.8 s, N=7 ≈ 60 s), so it is a short micro and cannot be tuned to macro length.
+- **Adaptation:** Reads its marshalled term from `$QUICKSORT_TERM` (absolute path) when set, else the upstream relative default `quicksort.term`. The run cwd is a temp dir, so the config must set `QUICKSORT_TERM` to `…/simple/hashcons/quicksort.term`.
+
 ### hamming
 
 - **Source:** sandmark `benchmarks/hamming/`
