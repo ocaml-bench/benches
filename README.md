@@ -71,6 +71,12 @@ So benchmark `almabench` with runtime `ocaml-local` produces:
 
 You can override this in `running-ng` config with `build_script` and `binary`, but the convention above means those fields are usually unnecessary.
 
+### Running under MMTk (`ocaml-mmtk`)
+
+These micro-benchmarks also build and run under [ocaml-mmtk](https://github.com/fplaunchpad/ocaml-mmtk) — OCaml 5.5 with the [MMTk](https://www.mmtk.io/) collector — using running-ng's `OCamlMMTk` runtime. It is a drop-in runtime: add it to any micro config's `runtimes:` block and the standard `build_ocaml_binaries_gc_sweep.sh` / `run_ocaml_bench_gc_sweep.sh` scripts work unchanged (running-ng auto-injects `setarch -R` for MMTk's ASLR-sensitive metadata mmap; needs Rust/cargo to build the compiler). See [running-ng's MMTk section](https://github.com/udesou/running-ng#mmtk-ocaml-mmtk) for runtime declaration, plans (`MMTK_PLAN`), the fixed-heap knob (`MMTK_HEAP_SIZE_MB`), and the `minheap` search.
+
+> `fannkuchredux` fails to run on stock OCaml 5.5.0-rc1 as well (`Invalid_argument`, a pre-existing benchmark/5.5 issue) — not an MMTk regression.
+
 ## Build Script Contract
 
 `running-ng` creates an opam switch for each runtime (via `opam-compiler`) and

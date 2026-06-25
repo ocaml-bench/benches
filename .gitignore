@@ -27,6 +27,7 @@ _build-running/
 *-ocaml-global
 *-ocaml-*
 *-oxcaml-*
+*-mmtk*
 markbench-runtime
 infer/openssl-capture/
 
