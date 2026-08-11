@@ -1,0 +1,135 @@
+name: CI
+
+# Pull requests into master are the gate: "this change keeps master buildable and
+# runnable", checked before the merge. Pushes to master verify the result *after*
+# it — required checks are not `strict`, so two PRs can each be green against an
+# older master and still break it together, and nothing else would notice until
+# the next PR or the Monday cron.
+#
+# Nothing runs on other branch pushes, so work-in-progress doesn't burn runners.
+#
+# Unlike macro-benches, this suite is small enough that CI runs *every* program
+# rather than a flagged subset: all 195 programs run in ~4.5 min of wall time
+# (measured 2026-08-10, `_build` warm), so there is nothing to gain from picking
+# favourites and a whole class of "the benchmark CI skipped was the broken one"
+# to lose.
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+  schedule:
+    # Weekly cold run: no opam cache, so every `with_packages/` dependency is
+    # re-solved and rebuilt from scratch. Nothing here is version-pinned — the
+    # build scripts `opam install` whatever the solver picks — so unlike
+    # macro-benches' cold run this one *is* looking for drift: it is the only
+    # thing that notices when a new zarith/lwt/domainslib stops working.
+    - cron: "0 4 * * 1"
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Superseding a PR run is what you want — only the latest push matters.
+  # Cancelling a *master* run is not: two merges landing close together would
+  # leave the first unverified, which is the gap the post-merge run closes.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build-and-run:
+    name: build + run once (${{ matrix.label }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    # The trunk leg is informational: it tracks a moving compiler and can go red
+    # for reasons that have nothing to do with a change here. It reports; it does
+    # not gate.
+    continue-on-error: ${{ matrix.required == false }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # `label` becomes the check name branch protection requires, so keep it
+          # free of version numbers — bumping the compiler below must not
+          # silently orphan the required check.
+          - label: "stable"
+            ocaml: "5.5.0"
+            required: true
+          - label: "trunk"
+            ocaml: "ocaml-variants.5.6.0+trunk"
+            required: false
+
+    env:
+      # Picks the output binary suffix: <program>-ci.
+      RUNNING_OCAML_RUNTIME_NAME: ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # For the trunk leg, resolve the tip commit BEFORE creating the switch and
+      # fold it into the cache key. Without this a restored opam cache would hand
+      # us a stale trunk switch and the run would silently not test the tip.
+      - name: Resolve compiler identity
+        id: compiler
+        run: |
+          if [[ "${{ matrix.ocaml }}" == *trunk* ]]; then
+            sha="$(curl -fsSL https://api.github.com/repos/ocaml/ocaml/commits/trunk \
+                   | python3 -c 'import json,sys; print(json.load(sys.stdin)["sha"][:12])')"
+            echo "id=trunk-${sha}" >> "$GITHUB_OUTPUT"
+            echo "### Compiler: ocaml/ocaml trunk @ \`${sha}\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "id=${{ matrix.ocaml }}" >> "$GITHUB_OUTPUT"
+            echo "### Compiler: OCaml ${{ matrix.ocaml }}" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # zarith needs libgmp; the rest of `with_packages/` pulls its own OCaml
+      # deps through opam at build time. camlimages (contrast) is deliberately
+      # absent — that benchmark is disabled, see manifest.yml.
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential m4 pkg-config libgmp-dev zlib1g-dev
+
+      - uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: ${{ matrix.ocaml }}
+          # The weekly run is the drift check, so it gets its own cache scope
+          # rather than restoring the warm one every PR shares.
+          cache-prefix: ${{ steps.compiler.outputs.id }}${{ github.event_name == 'schedule' && '-cold' || '' }}
+
+      # Cheap and first: fails in seconds on a benchmark added without a manifest
+      # entry (or vice versa), rather than ten minutes into a build.
+      #
+      # Deliberately NOT `--running-ng`: that cross-checks against a checkout of
+      # running-ng, which CI does not have. Keeping the two in step is a
+      # local/reviewer step — see CLAUDE.md §Hard rules.
+      - name: Validate the manifest against the tree
+        run: python3 scripts/ci-manifest.py check
+
+      - name: Install dune and ocamlfind
+        run: |
+          eval "$(opam env)"
+          opam install --yes dune ocamlfind
+          dune --version
+
+      - name: Build every benchmark
+        run: |
+          eval "$(opam env)"
+          bash scripts/ci-build-all.sh
+
+      - name: Run every benchmark once
+        run: |
+          eval "$(opam env)"
+          bash scripts/ci-run-all.sh
+
+      - name: Disk usage
+        if: always()
+        run: df -h /
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-logs-${{ steps.compiler.outputs.id }}
+          path: ci-logs/
+          retention-days: 14
+          if-no-files-found: ignore
