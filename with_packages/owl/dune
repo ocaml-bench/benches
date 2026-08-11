@@ -1,4 +1,0 @@
-(executable
- (name owl_gc)
- (modules owl_gc)
- (libraries owl unix))
