@@ -35,3 +35,6 @@ infer/openssl-capture/
 *~
 .DS_Store
 a.out
+
+# CI / test-runtimes.sh artifacts
+ci-logs/

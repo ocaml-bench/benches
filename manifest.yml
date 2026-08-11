@@ -1,0 +1,1016 @@
+# manifest.yml — the programs this tree can build and run.
+#
+# Why this file exists: a build script alone is not enough to know what to run.
+# Many scripts are shared by several programs that differ only in their
+# arguments (one `stdlib/string_bench.build.sh`, twelve `string_bench_*`
+# programs), so "run every */*/*.build.sh" tells you nothing about workloads.
+# Until now that program list lived only in running-ng's `micro_base.yml`, which
+# meant this repo could not check or test itself. scripts/ci-build-all.sh,
+# scripts/ci-run-all.sh and scripts/test-runtimes.sh read this file.
+#
+# `args` are copied VERBATIM from running-ng's `base/ocaml/micro_base.yml` so the
+# two can be diffed mechanically — `scripts/ci-manifest.py check --running-ng
+# <path>` does exactly that. ${RUNNING_BENCH_DIR} expands to the root of this
+# repo, matching running-ng's spelling.
+#
+# Programs are run from a scratch working directory, so anything a benchmark
+# writes relatively (minilight's .ppm) lands there and not in the source tree.
+#
+# Adding a benchmark: add its entry here in the same commit as its build script,
+# and add the matching program to running-ng's micro_base.yml. `check` fails if a
+# program here has no build script, or a build script has no program (unless it
+# is listed under `disabled`).
+#
+# `build_script` defaults to <name>.build.sh and is only spelled out when a
+# script is shared by several programs.
+
+default_timeout: 120
+
+suites:
+  sandmark-sequential:
+    type: OCamlBenchmarkSuite
+    timeout: 120
+  sandmark-with-deps:
+    type: OCamlBenchmarkSuite
+    timeout: 300
+  sandmark-with-packages:
+    type: OCamlBenchmarkSuite
+    timeout: 120
+  multicore-effects:
+    type: OCamlMulticoreBenchmarkSuite
+    timeout: 120
+  multicore-structures:
+    type: OCamlMulticoreBenchmarkSuite
+    timeout: 120
+  multicore-numerical:
+    type: OCamlMulticoreBenchmarkSuite
+    timeout: 180
+  multicore-grammatrix:
+    type: OCamlMulticoreBenchmarkSuite
+    timeout: 120
+  multicore-minilight:
+    type: OCamlMulticoreBenchmarkSuite
+    timeout: 30
+  graph500par:
+    type: OCamlMulticoreBenchmarkSuite
+    timeout: 300
+  mpl:
+    type: OCamlMulticoreBenchmarkSuite
+    timeout: 300
+  multicore-simple-tests:
+    type: OCamlMulticoreBenchmarkSuite
+    timeout: 120
+  multicore-gcroots:
+    type: OCamlMulticoreBenchmarkSuite
+    timeout: 120
+  oxcaml-prefetch:
+    type: OCamlOxcamlBenchmarkSuite
+    timeout: 30
+
+programs:
+
+  # --- sandmark-sequential -----------------------------------------
+  almabench:
+    suite: sandmark-sequential
+    path: simple/almabench
+    args: ""
+  bdd:
+    suite: sandmark-sequential
+    path: simple/bdd
+    args: ""
+  hamming:
+    suite: sandmark-sequential
+    path: simple/hamming
+    args: "500000"
+  soli:
+    suite: sandmark-sequential
+    path: simple/soli
+    args: "50"
+  kb:
+    suite: sandmark-sequential
+    path: simple/kb
+    args: ""
+  kb_no_exc:
+    suite: sandmark-sequential
+    path: simple/kb
+    args: ""
+  lexifi-g2pp:
+    suite: sandmark-sequential
+    path: simple/lexifi-g2pp
+    args: ""
+  zdd:
+    suite: sandmark-sequential
+    path: simple/zdd
+    args: "${RUNNING_BENCH_DIR}/simple/zdd/words.txt"
+  fannkuchredux:
+    suite: sandmark-sequential
+    path: simple/fannkuchredux
+    args: "11"
+  crout_decomposition:
+    suite: sandmark-sequential
+    path: simple/numerical-analysis
+    args: ""
+  qr_decomposition:
+    suite: sandmark-sequential
+    path: simple/numerical-analysis
+    args: ""
+  durand_kerner_aberth:
+    suite: sandmark-sequential
+    path: simple/numerical-analysis
+    args: ""
+  fft:
+    suite: sandmark-sequential
+    path: simple/numerical-analysis
+    args: ""
+  levinson_durbin:
+    suite: sandmark-sequential
+    path: simple/numerical-analysis
+    args: ""
+  naive_multilayer:
+    suite: sandmark-sequential
+    path: simple/numerical-analysis
+    args: ""
+  markbench:
+    suite: sandmark-sequential
+    path: simple/markbench
+    args: ""
+  minilight:
+    suite: sandmark-sequential
+    path: simple/minilight
+    args: "${RUNNING_BENCH_DIR}/simple/minilight/roomfront.ml.txt"
+  sequence_cps:
+    suite: sandmark-sequential
+    path: simple/sequence
+    args: "10000"
+  array_bench_fold:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: array_bench.build.sh
+    args: "array_fold 1000 100000"
+  array_bench_forall:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: array_bench.build.sh
+    args: "array_forall 1000 100000"
+  array_bench_iter:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: array_bench.build.sh
+    args: "array_iter 1000 100000"
+  bytes_bench_get:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: bytes_bench.build.sh
+    args: "bytes_get 100000000"
+  bytes_bench_sub:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: bytes_bench.build.sh
+    args: "bytes_sub 100000000"
+  bytes_bench_blit:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: bytes_bench.build.sh
+    args: "bytes_blit 2500000"
+  bytes_bench_concat:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: bytes_bench.build.sh
+    args: "bytes_concat 2000000"
+  bytes_bench_iter:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: bytes_bench.build.sh
+    args: "bytes_iter 1000000"
+  bytes_bench_map:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: bytes_bench.build.sh
+    args: "bytes_map 1000000"
+  bytes_bench_trim:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: bytes_bench.build.sh
+    args: "bytes_trim 2500000"
+  bytes_bench_index:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: bytes_bench.build.sh
+    args: "bytes_index 10000000"
+  bytes_bench_contains:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: bytes_bench.build.sh
+    args: "bytes_contains 100000000"
+  bytes_bench_uppercase_ascii:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: bytes_bench.build.sh
+    args: "bytes_uppercase_ascii 1000000"
+  string_bench_get:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: string_bench.build.sh
+    args: "string_get 50000000"
+  string_bench_sub:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: string_bench.build.sh
+    args: "string_sub 50000000"
+  string_bench_blit:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: string_bench.build.sh
+    args: "string_blit 25000000"
+  string_bench_concat:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: string_bench.build.sh
+    args: "string_concat 20000000"
+  string_bench_iter:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: string_bench.build.sh
+    args: "string_iter 1000000"
+  string_bench_map:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: string_bench.build.sh
+    args: "string_map 20000000"
+  string_bench_trim:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: string_bench.build.sh
+    args: "string_trim 1000000"
+  string_bench_index:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: string_bench.build.sh
+    args: "string_index 25000000"
+  string_bench_contains:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: string_bench.build.sh
+    args: "string_contains 25000000"
+  string_bench_uppercase_ascii:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: string_bench.build.sh
+    args: "string_uppercase_ascii 1000000"
+  string_bench_split_on_char:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: string_bench.build.sh
+    args: "string_split_on_char 500000"
+  string_bench_compare:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: string_bench.build.sh
+    args: "string_compare 10000"
+  string_bench_equal:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: string_bench.build.sh
+    args: "string_equal 25000"
+  map_bench_iter:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: map_bench.build.sh
+    args: "map_iter 10000"
+  map_bench_add:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: map_bench.build.sh
+    args: "map_add 1000000"
+  map_bench_add_duplicate:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: map_bench.build.sh
+    args: "map_add_duplicate 1000000"
+  map_bench_remove:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: map_bench.build.sh
+    args: "map_remove 1000000"
+  map_bench_fold:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: map_bench.build.sh
+    args: "map_fold 10000"
+  map_bench_for_all:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: map_bench.build.sh
+    args: "map_for_all 10000"
+  map_bench_find:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: map_bench.build.sh
+    args: "map_find 1000000"
+  map_bench_map:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: map_bench.build.sh
+    args: "map_map 10000"
+  set_bench_fold:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: set_bench.build.sh
+    args: "set_fold 1000000"
+  set_bench_mem:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: set_bench.build.sh
+    args: "set_mem 50000000"
+  set_bench_add_rem:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: set_bench.build.sh
+    args: "set_add_rem 20000000"
+  stack_bench_fold:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: stack_bench.build.sh
+    args: "stack_fold 2500000"
+  stack_bench_push_pop:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: stack_bench.build.sh
+    args: "stack_push_pop 100000000"
+  hashtbl_bench_int_replace1:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: hashtbl_bench.build.sh
+    args: "int_replace1 10000"
+  hashtbl_bench_int_find1:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: hashtbl_bench.build.sh
+    args: "int_find1 20000"
+  hashtbl_bench_int_replace2:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: hashtbl_bench.build.sh
+    args: "int_replace2 100000"
+  hashtbl_bench_int_find2:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: hashtbl_bench.build.sh
+    args: "int_find2 300000"
+  hashtbl_bench_caml_hash_int:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: hashtbl_bench.build.sh
+    args: "caml_hash_int 200000"
+  hashtbl_bench_caml_hash_tuple:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: hashtbl_bench.build.sh
+    args: "caml_hash_tuple 100000"
+  hashtbl_bench_iter:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: hashtbl_bench.build.sh
+    args: "hashtbl_iter 200000"
+  hashtbl_bench_fold:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: hashtbl_bench.build.sh
+    args: "hashtbl_fold 200000"
+  hashtbl_bench_add_resizing:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: hashtbl_bench.build.sh
+    args: "hashtbl_add_resizing 4000000"
+  hashtbl_bench_add_sized:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: hashtbl_bench.build.sh
+    args: "hashtbl_add_sized 6000000"
+  hashtbl_bench_add_duplicate:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: hashtbl_bench.build.sh
+    args: "hashtbl_add_duplicate 2000000"
+  hashtbl_bench_remove:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: hashtbl_bench.build.sh
+    args: "hashtbl_remove 4000000"
+  hashtbl_bench_find:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: hashtbl_bench.build.sh
+    args: "hashtbl_find 6000000"
+  hashtbl_bench_filter_map:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: hashtbl_bench.build.sh
+    args: "hashtbl_filter_map 100000"
+  pervasives_bench_compare_lists:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: pervasives_bench.build.sh
+    args: "pervasives_compare_lists 100000000"
+  pervasives_bench_compare_ints:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: pervasives_bench.build.sh
+    args: "pervasives_compare_ints 1000000000"
+  pervasives_bench_compare_floats:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: pervasives_bench.build.sh
+    args: "pervasives_compare_floats 200000000"
+  pervasives_bench_compare_strings:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: pervasives_bench.build.sh
+    args: "pervasives_compare_strings 20000000"
+  pervasives_bench_equal_lists:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: pervasives_bench.build.sh
+    args: "pervasives_equal_lists 1000000000"
+  pervasives_bench_equal_ints:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: pervasives_bench.build.sh
+    args: "pervasives_equal_ints 1000000000"
+  pervasives_bench_equal_floats:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: pervasives_bench.build.sh
+    args: "pervasives_equal_floats 1000000000"
+  pervasives_bench_equal_strings:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: pervasives_bench.build.sh
+    args: "pervasives_equal_strings 20000000"
+  str_bench_regexp:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: str_bench.build.sh
+    args: "str_regexp 1000000"
+  str_bench_string_match:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: str_bench.build.sh
+    args: "str_string_match 50000000"
+  str_bench_search_forward:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: str_bench.build.sh
+    args: "str_search_forward 5000000"
+  str_bench_string_partial_match:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: str_bench.build.sh
+    args: "str_string_partial_match 25000000"
+  str_bench_global_replace:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: str_bench.build.sh
+    args: "str_global_replace 1000000"
+  str_bench_split:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: str_bench.build.sh
+    args: "str_split 2000000"
+  big_array_bench_int_rev:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: big_array_bench.build.sh
+    args: "big_array_int_rev 1024 50000"
+  big_array_bench_int32_rev:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: big_array_bench.build.sh
+    args: "big_array_int32_rev 1024 50000"
+  alloc:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    args: "200_000"
+  lists_int_small:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: lists.build.sh
+    args: "int 1"
+  lists_int_large:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: lists.build.sh
+    args: "int 100000"
+  lists_float_small:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: lists.build.sh
+    args: "float 1"
+  lists_float_large:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: lists.build.sh
+    args: "float 100000"
+  lists_string_large:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: lists.build.sh
+    args: "string 100000"
+  lists_int_array_large:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: lists.build.sh
+    args: "int-array 100000"
+  stress_small:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: stress.build.sh
+    args: "10000 10"
+  stress_large:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: stress.build.sh
+    args: "100000 100"
+  lazylist_small:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: lazylist.build.sh
+    args: "100000 100"
+  lazylist_large:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: lazylist.build.sh
+    args: "10000 1000"
+  lazy_primes:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    args: "10000"
+  morestacks:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    args: "1_000"
+  stacks_ints_small:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: stacks.build.sh
+    args: "100000 ints-small"
+  stacks_ints_large:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: stacks.build.sh
+    args: "20000 ints-large"
+  stacks_floats_small:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: stacks.build.sh
+    args: "100000 floats-small"
+  stacks_floats_large:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: stacks.build.sh
+    args: "20000 floats-large"
+  finalise_10:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: finalise.build.sh
+    args: "10"
+  finalise_50:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: finalise.build.sh
+    args: "50"
+  finalise_100:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: finalise.build.sh
+    args: "100"
+  weakretain_25_small:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: weakretain.build.sh
+    args: "25 1000"
+  weakretain_25_large:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: weakretain.build.sh
+    args: "25 10000000"
+  weakretain_75_small:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: weakretain.build.sh
+    args: "75 1000"
+  weakretain_75_large:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    build_script: weakretain.build.sh
+    args: "75 10000000"
+  weak_htbl:
+    suite: sandmark-sequential
+    path: simple/simple-tests
+    args: "1000"
+  capi_no_args_alloc:
+    suite: sandmark-sequential
+    path: simple/capi
+    build_script: capi.build.sh
+    args: "test_no_args_alloc 10000000"
+  capi_no_args_noalloc:
+    suite: sandmark-sequential
+    path: simple/capi
+    build_script: capi.build.sh
+    args: "test_no_args_noalloc 10000000"
+  capi_few_args_alloc:
+    suite: sandmark-sequential
+    path: simple/capi
+    build_script: capi.build.sh
+    args: "test_few_args_alloc 10000000"
+  capi_few_args_noalloc:
+    suite: sandmark-sequential
+    path: simple/capi
+    build_script: capi.build.sh
+    args: "test_few_args_noalloc 10000000"
+  capi_many_args_alloc:
+    suite: sandmark-sequential
+    path: simple/capi
+    build_script: capi.build.sh
+    args: "test_many_args_alloc 10000000"
+  capi_many_args_noalloc:
+    suite: sandmark-sequential
+    path: simple/capi
+    build_script: capi.build.sh
+    args: "test_many_args_noalloc 10000000"
+
+  # --- sandmark-with-deps ------------------------------------------
+  graph500seq:
+    suite: sandmark-with-deps
+    path: with_deps/graph500seq
+    args: "${RUNNING_BENCH_DIR}/with_deps/graph500seq/edges.data"
+  knucleotide:
+    suite: sandmark-with-deps
+    path: with_deps/benchmarksgame
+    args: "${RUNNING_BENCH_DIR}/with_deps/benchmarksgame/input25000000.txt"
+  knucleotide3:
+    suite: sandmark-with-deps
+    path: with_deps/benchmarksgame
+    args: "${RUNNING_BENCH_DIR}/with_deps/benchmarksgame/input25000000.txt"
+  revcomp2:
+    suite: sandmark-with-deps
+    path: with_deps/benchmarksgame
+    args: "${RUNNING_BENCH_DIR}/with_deps/benchmarksgame/input25000000.txt"
+  regexredux2:
+    suite: sandmark-with-deps
+    path: with_deps/benchmarksgame
+    args: "${RUNNING_BENCH_DIR}/with_deps/benchmarksgame/input5000000.txt"
+
+  # --- sandmark-with-packages --------------------------------------
+  binarytrees5:
+    suite: sandmark-with-packages
+    path: with_packages/benchmarksgame
+    args: "21"
+  fasta3:
+    suite: sandmark-with-packages
+    path: with_packages/benchmarksgame
+    args: "25000000"
+  fasta6:
+    suite: sandmark-with-packages
+    path: with_packages/benchmarksgame
+    args: "25000000"
+  mandelbrot6:
+    suite: sandmark-with-packages
+    path: with_packages/benchmarksgame
+    args: "16000"
+  nbody_benchmarksgame:
+    suite: sandmark-with-packages
+    path: with_packages/benchmarksgame
+    build_script: nbody.build.sh
+    args: "50000000"
+  pidigits5:
+    suite: sandmark-with-packages
+    path: with_packages/benchmarksgame
+    args: "10000"
+  spectralnorm2:
+    suite: sandmark-with-packages
+    path: with_packages/benchmarksgame
+    args: "5500"
+  zarith_fact:
+    suite: sandmark-with-packages
+    path: with_packages/zarith
+    args: "40 1000000"
+  zarith_fib:
+    suite: sandmark-with-packages
+    path: with_packages/zarith
+    args: "Z 40"
+  zarith_tak:
+    suite: sandmark-with-packages
+    path: with_packages/zarith
+    args: "Z 2500"
+  test_sched:
+    suite: sandmark-with-packages
+    path: with_packages/test_sched
+    # Three args: num_domains tasks_to_spawn list_length. The old "2 1000" was
+    # missing the third and crashed on Sys.argv.(3) every run.
+    args: "2 1000000 1000"
+  test_lwt:
+    suite: sandmark-with-packages
+    path: with_packages/valet
+    args: "100"
+
+  # --- multicore-effects -------------------------------------------
+  algorithmic_differentiation:
+    suite: multicore-effects
+    path: multicore/multicore-effects
+    args: "100"
+  rec_eff_fib:
+    suite: multicore-effects
+    path: multicore/multicore-effects
+    args: ""
+  rec_seq_fib:
+    suite: multicore-effects
+    path: multicore/multicore-effects
+    args: ""
+  rec_eff_tak:
+    suite: multicore-effects
+    path: multicore/multicore-effects
+    args: ""
+  rec_seq_tak:
+    suite: multicore-effects
+    path: multicore/multicore-effects
+    args: ""
+  rec_eff_ack:
+    suite: multicore-effects
+    path: multicore/multicore-effects
+    args: ""
+  rec_seq_ack:
+    suite: multicore-effects
+    path: multicore/multicore-effects
+    args: ""
+  effect_throughput_val:
+    suite: multicore-effects
+    path: multicore/multicore-effects
+    args: "1_000_000"
+  effect_throughput_perform:
+    suite: multicore-effects
+    path: multicore/multicore-effects
+    args: "1_000_000"
+  effect_throughput_perform_drop:
+    suite: multicore-effects
+    path: multicore/multicore-effects
+    args: "1_000_000"
+  eratosthenes:
+    suite: multicore-effects
+    path: multicore/multicore-effects
+    args: "1000"
+  # Explicit size: the built-in default (2 x 500M) blows the suite's 120s
+  # timeout. Kept identical to rec_seq_evenodd so the pair stays comparable.
+  rec_eff_evenodd:
+    suite: multicore-effects
+    path: multicore/multicore-effects
+    args: "2 5000000"
+  rec_seq_evenodd:
+    suite: multicore-effects
+    path: multicore/multicore-effects
+    args: "2 5000000"
+  rec_eff_motzkin:
+    suite: multicore-effects
+    path: multicore/multicore-effects
+    args: ""
+  rec_seq_motzkin:
+    suite: multicore-effects
+    path: multicore/multicore-effects
+    args: ""
+  rec_eff_sudan:
+    suite: multicore-effects
+    path: multicore/multicore-effects
+    args: ""
+  rec_seq_sudan:
+    suite: multicore-effects
+    path: multicore/multicore-effects
+    args: ""
+
+  # --- multicore-structures ----------------------------------------
+  test_queue_sequential:
+    suite: multicore-structures
+    path: multicore/multicore-structures
+    args: "1000000"
+  test_queue_parallel:
+    suite: multicore-structures
+    path: multicore/multicore-structures
+    args: "1000000"
+  test_stack_sequential:
+    suite: multicore-structures
+    path: multicore/multicore-structures
+    args: "1000000"
+  test_stack_parallel:
+    suite: multicore-structures
+    path: multicore/multicore-structures
+    args: "1000000"
+  test_spsc_queue_sequential:
+    suite: multicore-structures
+    path: multicore/multicore-structures
+    args: "1000"
+  test_spsc_queue_parallel:
+    suite: multicore-structures
+    path: multicore/multicore-structures
+    args: "1000000"
+  test_spsc_queue_pingpong_parallel:
+    suite: multicore-structures
+    path: multicore/multicore-structures
+    args: "4 100000"
+
+  # --- multicore-numerical -----------------------------------------
+  nbody_multicore:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "4 500 1024"
+  floyd_warshall_multicore:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "4 512"
+  game_of_life_multicore:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "4 10 1024"
+  binarytrees5_multicore:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "4 21"
+  spectralnorm2_multicore:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "4 2000"
+  fannkuchredux_multicore:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "4 11"
+  quicksort_multicore:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "4 2000000"
+  mergesort_multicore:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "4 1000000"
+  matrix_multiplication_multicore:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "4 512"
+  matrix_multiplication_tiling_multicore:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "4 512"
+  LU_decomposition_multicore:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "4 1200"
+  nqueens_multicore:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "4 13"
+  evolutionary_algorithm_multicore:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "4 1000 1000"
+  nbody:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "500 1024"
+  floyd_warshall:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "512"
+  game_of_life:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "10 1024"
+  quicksort:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "2000000"
+  mergesort:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "1000000"
+  matrix_multiplication:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "512"
+  LU_decomposition:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "1200"
+  nqueens:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "13"
+  evolutionary_algorithm:
+    suite: multicore-numerical
+    path: multicore/multicore-numerical
+    args: "1000 1000"
+
+  # --- multicore-grammatrix ----------------------------------------
+  grammatrix:
+    suite: multicore-grammatrix
+    path: multicore/multicore-grammatrix
+    args: "1 ${RUNNING_BENCH_DIR}/multicore/multicore-grammatrix/data/tox21_nrar_ligands_std_rand_01.csv"
+  grammatrix_multicore:
+    suite: multicore-grammatrix
+    path: multicore/multicore-grammatrix
+    args: "4 16 ${RUNNING_BENCH_DIR}/multicore/multicore-grammatrix/data/tox21_nrar_ligands_std_rand_01.csv"
+
+  # --- multicore-minilight -----------------------------------------
+  minilight_multicore:
+    suite: multicore-minilight
+    path: multicore/multicore-minilight
+    args: "${RUNNING_BENCH_DIR}/multicore/multicore-minilight/roomfront.ml.txt"
+
+  # --- graph500par -------------------------------------------------
+  kernel1_run_multicore:
+    suite: graph500par
+    path: multicore/graph500par
+    args: "-ndomains 4 ${RUNNING_BENCH_DIR}/multicore/graph500par/edges.data"
+
+  # --- mpl ---------------------------------------------------------
+  primes:
+    suite: mpl
+    path: with_deps/mpl
+    args: "-N 100000000 -procs 4"
+  msort_ints:
+    suite: mpl
+    path: with_deps/mpl
+    args: "-N 10000000 -procs 4"
+  msort_strings:
+    suite: mpl
+    path: with_deps/mpl
+    args: "-f ${RUNNING_BENCH_DIR}/with_deps/mpl/inputs/words64.txt -procs 4"
+  tokens:
+    suite: mpl
+    path: with_deps/mpl
+    args: "-f ${RUNNING_BENCH_DIR}/with_deps/mpl/inputs/words.txt --no-output -procs 4"
+  raytracer:
+    suite: mpl
+    path: with_deps/mpl
+    args: "-n 2000 -procs 4"
+
+  # --- multicore-simple-tests --------------------------------------
+  alloc_multicore:
+    suite: multicore-simple-tests
+    path: multicore/alloc_multicore
+    args: "2 200_000"
+  pingpong_multicore:
+    suite: multicore-simple-tests
+    path: multicore/pingpong_multicore
+    args: "3 1 1000000"
+
+  # --- multicore-gcroots -------------------------------------------
+  globroots_seq:
+    suite: multicore-gcroots
+    path: multicore/multicore-gcroots
+    args: ""
+  globroots_mp:
+    suite: multicore-gcroots
+    path: multicore/multicore-gcroots
+    args: "4 10000"
+  globroots_sp:
+    suite: multicore-gcroots
+    path: multicore/multicore-gcroots
+    args: "4 10000"
+
+  # --- oxcaml-prefetch ---------------------------------------------
+  oxcaml_prefetch:
+    suite: oxcaml-prefetch
+    path: multicore/oxcaml-prefetch
+    args: ""
+    # Uses OxCaml-only prefetch intrinsics; skipped unless RUNTIME_KIND=oxcaml.
+    requires: oxcaml
+
+# =============================================================================
+# Disabled — source is in the tree, no program runs it.
+# =============================================================================
+# Each of these has a build script but no entry above (and none in running-ng's
+# micro_base.yml either). Listed here so `check` does not flag the orphan script.
+disabled:
+  contrast:
+    path: with_packages/sauvola
+    build_script: contrast.build.sh
+    reason: >-
+      camlimages 5.0.5 fails to build on OCaml >= 5.4 (`/usr/bin/ld: final link
+      failed: bad value`), verified on 5.5.0 and trunk c0f8c8ce on 2026-08-10.
+      Source kept; re-enable when a camlimages that links is available.
+  mandelbrot6_multicore:
+    path: multicore/multicore-numerical
+    build_script: mandelbrot6_multicore.build.sh
+    reason: >-
+      OxCaml type error (output_bytes wants `bytes @ local`, Array.iter does
+      not); builds under stock OCaml but the sweep runs both, so it stays out.
+  chameneos_redux_lwt:
+    path: with_packages/chameneos
+    build_script: chameneos_redux_lwt.build.sh
+    reason: >-
+      lwt_unix does not compile under OxCaml (`bytes @ local` in Unix.recv).
+  thread_ring_lwt_mvar:
+    path: with_packages/thread-lwt
+    build_script: thread_ring_lwt_mvar.build.sh
+    reason: same lwt_unix/OxCaml locality error as chameneos_redux_lwt.
+  thread_ring_lwt_stream:
+    path: with_packages/thread-lwt
+    build_script: thread_ring_lwt_stream.build.sh
+    reason: same lwt_unix/OxCaml locality error as chameneos_redux_lwt.
