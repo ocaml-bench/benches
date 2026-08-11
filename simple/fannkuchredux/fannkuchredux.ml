@@ -98,7 +98,11 @@ let fr n lo hi =
       c := !c + r * (1 - (i land 1) lsl 1);
       if r > !m then
       m := r;
-      Perm.next p
+      (* Don't advance past the last permutation: for the final chunk
+         (hi = n!) that walks off the end of [c] and raises
+         Invalid_argument. Sandmark hides this by compiling with -unsafe;
+         the result of that extra [next] was never used either way. *)
+      if i < red_hi then Perm.next p
     done;
     (!c, !m)
 
