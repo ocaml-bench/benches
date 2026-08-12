@@ -117,10 +117,31 @@ def cmd_check(args):
             problems.append(f"{name}: no build script {s.relative_to(ROOT)}")
             continue
         claimed.add(str(s.relative_to(ROOT)))
-        # Args carrying an in-tree path (input data) must actually resolve.
+
+        # In-tree input files named in args must exist — this catches a benchmark
+        # added without committing its input. But six of them take an input the
+        # build *generates* (graph500's edges.data, benchmarksgame's FASTA), which
+        # is gitignored and absent on a fresh checkout. `check` runs before the
+        # build, so requiring those would fail on every clean tree, CI included.
+        #
+        # They opt out with `inputs_generated: true` (same field and meaning as
+        # macro-benches). That is an assertion, not a waiver: a program claiming
+        # it must have a <name>.build.deps.sh in its directory to back the claim,
+        # since that is the convention for generating runtime-independent input
+        # once and reusing it across every runtime in a sweep.
+        if p.get("inputs_generated"):
+            if not list(d.glob("*.build.deps.sh")):
+                problems.append(
+                    f"{name}: inputs_generated: true, but {p['path']}/ has no "
+                    f"*.build.deps.sh to generate them"
+                )
+            continue
         for tok in (p.get("args") or "").split():
             if "${RUNNING_BENCH_DIR}" in tok and not Path(expand(tok)).exists():
-                problems.append(f"{name}: args reference a missing file {tok}")
+                problems.append(
+                    f"{name}: args reference a missing file {tok} "
+                    f"(if the build generates it, set `inputs_generated: true`)"
+                )
 
     for name, d in disabled.items():
         s = ROOT / d["path"] / d["build_script"]

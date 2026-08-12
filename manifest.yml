@@ -28,6 +28,13 @@
 #
 # `build_script` defaults to <name>.build.sh and is only spelled out when a
 # script is shared by several programs.
+#
+# `inputs_generated: true` marks a program whose input is produced by the build
+# (a graph edge list, a FASTA file) rather than committed. Those files are
+# gitignored and absent on a fresh checkout, so `check` — which runs before the
+# build — must not require them. The claim is verified, not merely believed: the
+# program's directory must hold a <name>.build.deps.sh to back it. Same field
+# name and meaning as macro-benches' manifest.
 
 default_timeout: 120
 
@@ -649,22 +656,27 @@ programs:
     suite: sandmark-with-deps
     path: with_deps/graph500seq
     args: "${RUNNING_BENCH_DIR}/with_deps/graph500seq/edges.data"
+    inputs_generated: true
   knucleotide:
     suite: sandmark-with-deps
     path: with_deps/benchmarksgame
     args: "${RUNNING_BENCH_DIR}/with_deps/benchmarksgame/input25000000.txt"
+    inputs_generated: true
   knucleotide3:
     suite: sandmark-with-deps
     path: with_deps/benchmarksgame
     args: "${RUNNING_BENCH_DIR}/with_deps/benchmarksgame/input25000000.txt"
+    inputs_generated: true
   revcomp2:
     suite: sandmark-with-deps
     path: with_deps/benchmarksgame
     args: "${RUNNING_BENCH_DIR}/with_deps/benchmarksgame/input25000000.txt"
+    inputs_generated: true
   regexredux2:
     suite: sandmark-with-deps
     path: with_deps/benchmarksgame
     args: "${RUNNING_BENCH_DIR}/with_deps/benchmarksgame/input5000000.txt"
+    inputs_generated: true
 
   # --- sandmark-with-packages --------------------------------------
   binarytrees5:
@@ -932,6 +944,7 @@ programs:
     suite: graph500par
     path: multicore/graph500par
     args: "-ndomains 4 ${RUNNING_BENCH_DIR}/multicore/graph500par/edges.data"
+    inputs_generated: true
 
   # --- mpl ---------------------------------------------------------
   primes:
