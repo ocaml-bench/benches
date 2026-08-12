@@ -26,6 +26,12 @@ backlog.
   programs share one script and differ only in arguments), so the scripts alone
   don't tell you what programs exist or how to run them. Before it existed, that
   list lived only in running-ng and this repo could not test itself.
+- Which makes `manifest.yml` **this repo's own source of truth**, not a mirror
+  of running-ng's. running-ng's `micro_base.yml` happens to list the same
+  programs with the same arguments, and `make check-running-ng` will tell you
+  when it doesn't — but that is a convenience for whoever maintains both, not a
+  constraint on this repo. A drift there is a running-ng problem to fix in
+  running-ng; it must never block a build, a run, or CI here.
 
 ## Hard rules (do not violate)
 
@@ -37,11 +43,10 @@ backlog.
   already activated (compiler + `dune` on PATH) and must produce the binary at
   `RUNNING_OCAML_OUTPUT` (named `<name>-<runtime>`). Do **not** reference the
   legacy `OCAML_EXECUTABLE` / `OCAML_HOME` env vars (pre-opam-compiler; gone).
-- **`manifest.yml` and running-ng's `micro_base.yml` must agree.** Add a
-  benchmark to both in the same commit; `ci-manifest.py check --running-ng`
-  diffs them program-for-program and argument-for-argument, and is the cheapest
-  check in the repo. A program in only one of them is a benchmark that silently
-  never runs, or a sweep entry that fails every time.
+- **This repo stands alone.** Nothing in the default path — `make check`,
+  `make build`, `make run`, CI — may require a running-ng checkout, or any other
+  sibling repo. running-ng is *a* consumer of these benchmarks, not a
+  dependency. Keep the coupling opt-in (`make check-running-ng`).
 - **Don't commit built binaries** (`*-<runtime>`), `ci-logs/`, or generated data.
 - Keep documentation consistent with every commit: `README.md`, the relevant
   `docs/benchmarks/<group>.md`, and this file.
@@ -155,9 +160,11 @@ favourites and a whole class of "the benchmark CI skipped was the broken one" to
 lose. If you are tempted to add `ci_run:`, measure first — the cost here is the
 cold `opam install` for `with_packages/`, which caching addresses, not the run.
 
-The `check` step deliberately omits `--running-ng`: that cross-checks against a
-running-ng checkout, which CI does not have. Keeping the two in step stays a
-local and reviewer responsibility.
+The `check` step deliberately omits `--running-ng`. Not because a runner
+*cannot* clone running-ng — it could — but because CI should test what this repo
+promises, and this repo promises to build and run its benchmarks standalone. A
+green build here must never depend on the state of another repo's config. Use
+`make check-running-ng` locally when you change the program list.
 
 The weekly cron uses its own cache scope so it starts cold. Unlike
 macro-benches' cold run, this one genuinely *is* a drift check: nothing here is
@@ -257,8 +264,10 @@ compiler as the workload. running-ng always exports all five.
 
 1. New/edited benchmark → add/keep its `<name>.build.sh` + `dune`; mirror the
    build contract above.
-2. Add it to `manifest.yml` **and** running-ng's `micro_base.yml` in the same
-   commit; `ci-manifest.py check --running-ng` must pass.
+2. Add it to `manifest.yml`; `make check` must pass. If you also drive sweeps
+   from running-ng, add the matching program to its `micro_base.yml` and confirm
+   with `make check-running-ng` — separately, and not as a condition of landing
+   here.
 3. Validate by building *and running* through `scripts/test-runtimes.sh` (or
    running-ng) — don't hand-roll compiler invocations, and don't call a build
    success a pass.

@@ -18,10 +18,15 @@ Modes:
                                       by a program or listed under `disabled`
                                     - every in-tree input path in `args` exists
                                     - every program names a declared suite
-                                  With --running-ng <micro_base.yml>, also diff
-                                  the program set and every `args` string against
-                                  running-ng's config, which is what actually
-                                  drives real runs.
+                                  Reads nothing outside this repo. This is what
+                                  `make check` and CI run.
+
+                                  --running-ng [<micro_base.yml>] additionally
+                                  diffs the program set and every `args` string
+                                  against running-ng's sweep config. Opt-in, and
+                                  the ONLY thing in this repo that looks outside
+                                  it: benches builds, runs and tests itself
+                                  standalone, so never fold this into `check`.
 
 Filters (list only):
   --only "a b c"     restrict to these program names
@@ -185,7 +190,7 @@ def main():
         nargs="?",
         const="~/running-ng/src/running/config/base/ocaml/micro_base.yml",
         default=None,
-        help="also diff against running-ng's micro_base.yml",
+        help="opt-in: also diff the program list against running-ng's micro_base.yml",
     )
     p_check.set_defaults(fn=cmd_check)
 

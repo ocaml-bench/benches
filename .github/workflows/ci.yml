@@ -99,9 +99,11 @@ jobs:
       # Cheap and first: fails in seconds on a benchmark added without a manifest
       # entry (or vice versa), rather than ten minutes into a build.
       #
-      # Deliberately NOT `--running-ng`: that cross-checks against a checkout of
-      # running-ng, which CI does not have. Keeping the two in step is a
-      # local/reviewer step — see CLAUDE.md §Hard rules.
+      # Deliberately NOT `--running-ng`. Not because a runner couldn't clone it,
+      # but because CI should test what this repo promises, and what it promises
+      # is to build and run its benchmarks standalone. A green build here must
+      # never depend on another repo's config. `make check-running-ng` covers
+      # that diff locally, for whoever maintains both.
       - name: Validate the manifest against the tree
         run: python3 scripts/ci-manifest.py check
 

@@ -8,18 +8,23 @@
 # meant this repo could not check or test itself. scripts/ci-build-all.sh,
 # scripts/ci-run-all.sh and scripts/test-runtimes.sh read this file.
 #
-# `args` are copied VERBATIM from running-ng's `base/ocaml/micro_base.yml` so the
-# two can be diffed mechanically — `scripts/ci-manifest.py check --running-ng
-# <path>` does exactly that. ${RUNNING_BENCH_DIR} expands to the root of this
-# repo, matching running-ng's spelling.
+# This file is this repo's own source of truth. running-ng's
+# `base/ocaml/micro_base.yml` lists the same programs because it drives sweeps
+# over them, and `args` here are copied VERBATIM from it so the two can be
+# diffed mechanically (`make check-running-ng`) — but that diff is opt-in.
+# Nothing here needs a running-ng checkout: `make check`, the build and run
+# scripts, and CI all work from this file alone. ${RUNNING_BENCH_DIR} expands to
+# the root of this repo, keeping running-ng's spelling so the args match
+# character for character.
 #
 # Programs are run from a scratch working directory, so anything a benchmark
 # writes relatively (minilight's .ppm) lands there and not in the source tree.
 #
-# Adding a benchmark: add its entry here in the same commit as its build script,
-# and add the matching program to running-ng's micro_base.yml. `check` fails if a
-# program here has no build script, or a build script has no program (unless it
-# is listed under `disabled`).
+# Adding a benchmark: add its entry here in the same commit as its build script.
+# `make check` fails if a program here has no build script, or a build script has
+# no program (unless it is listed under `disabled`). If you also drive sweeps
+# from running-ng, add the matching program to its micro_base.yml and confirm
+# with `make check-running-ng`.
 #
 # `build_script` defaults to <name>.build.sh and is only spelled out when a
 # script is shared by several programs.

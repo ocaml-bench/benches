@@ -100,10 +100,13 @@ if one is missing it says so and moves on.
 The two phases can also be driven separately — this is exactly what CI does:
 
 ```bash
-python3 scripts/ci-manifest.py check --running-ng   # manifest vs. tree vs. running-ng
+make check                                          # manifest vs. tree
 RUNNING_OCAML_RUNTIME_NAME=ocaml-5.5.0 bash scripts/ci-build-all.sh
 RUNNING_OCAML_RUNTIME_NAME=ocaml-5.5.0 bash scripts/ci-run-all.sh
 ```
+
+None of that needs anything outside this repo — an opam switch with `dune` is
+the whole prerequisite.
 
 Neither is a measurement: one invocation, no perf, no olly, no core pinning,
 wall time printed only so an obvious blow-up is visible. They are build/run
@@ -144,16 +147,28 @@ Two ready-made configs point at this repo:
 | `examples/smoke_micro_550.yml` | six benchmarks, 5.5.0 vs trunk, 1 invocation — a plumbing check, ~1 min |
 | `experiments/e2e_micro_5.5.0_vs_trunk.yml` | the whole suite, 5.5.0 vs trunk, 1 invocation |
 
-running-ng's program list lives in
-`src/running/config/base/ocaml/micro_base.yml`, and is kept in step with
-`manifest.yml` — `ci-manifest.py check --running-ng` diffs the two, program
-for program and argument for argument.
+running-ng keeps its own copy of the program list in
+`src/running/config/base/ocaml/micro_base.yml`. If you maintain both, `make
+check-running-ng` diffs it against `manifest.yml` program for program and
+argument for argument. That check is opt-in on purpose: this repo builds, runs
+and tests itself without running-ng, and neither `make check` nor CI will ever
+ask you for a running-ng checkout.
 
 ### Clean
 
 ```bash
 make clean        # binaries, dune _build dirs, and generated input data
 ```
+
+### Make targets
+
+| Target | What it does |
+|---|---|
+| `make check` | manifest vs. tree — needs nothing outside this repo |
+| `make build` / `make run` | build / run every program with the compiler on `PATH` |
+| `make test` | both, across 5.5.0 and the newest local trunk switch |
+| `make check-running-ng` | *opt-in*: also diff the program list against running-ng's `micro_base.yml` |
+| `make clean` | binaries, `_build` dirs, generated input data, `ci-logs/` |
 
 ## Build-script contract
 

@@ -1,9 +1,16 @@
-.PHONY: check build run test clean clean-dune clean-data
+.PHONY: check check-running-ng build run test clean clean-dune clean-data
 
 # --- checks and test runs ---------------------------------------------------
 
-check:  ## manifest vs. tree vs. running-ng's micro_base.yml
-	@python3 scripts/ci-manifest.py check --running-ng
+check:  ## manifest vs. tree — needs nothing outside this repo
+	@python3 scripts/ci-manifest.py check
+
+# Opt-in, and deliberately not part of `check`: this repo stands alone, and
+# nothing in its default path may require a running-ng checkout. Run this when
+# you have changed the program list or an argument, to confirm the sweep config
+# still agrees. RUNNING_NG_CONFIG overrides the path.
+check-running-ng:  ## additionally diff the program list against running-ng's micro_base.yml
+	@python3 scripts/ci-manifest.py check --running-ng $(RUNNING_NG_CONFIG)
 
 build:  ## build every program with the compiler currently on PATH
 	@bash scripts/ci-build-all.sh
