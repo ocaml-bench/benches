@@ -35,3 +35,9 @@ infer/openssl-capture/
 *~
 .DS_Store
 a.out
+
+# CI artifacts: benchmark binaries built under the `ci` runtime tag by
+# scripts/ci-build-all.sh (the tag .github/workflows/ci.yml sets), and the
+# per-program build/run logs both CI and test-runtimes.sh write.
+*-ci
+ci-logs/

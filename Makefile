@@ -1,7 +1,30 @@
-.PHONY: clean clean-dune clean-with-deps clean-macrobenchmarks
+.PHONY: check check-running-ng build run test clean clean-dune clean-data
 
-clean: clean-dune clean-with-deps clean-macrobenchmarks
-	@echo "Cleaning benchmark build artifacts under $(CURDIR)"
+# --- checks and test runs ---------------------------------------------------
+
+check:  ## manifest vs. tree — needs nothing outside this repo
+	@python3 scripts/ci-manifest.py check
+
+# Opt-in, and deliberately not part of `check`: this repo stands alone, and
+# nothing in its default path may require a running-ng checkout. Run this when
+# you have changed the program list or an argument, to confirm the sweep config
+# still agrees. RUNNING_NG_CONFIG overrides the path.
+check-running-ng:  ## additionally diff the program list against running-ng's micro_base.yml
+	@python3 scripts/ci-manifest.py check --running-ng $(RUNNING_NG_CONFIG)
+
+build:  ## build every program with the compiler currently on PATH
+	@bash scripts/ci-build-all.sh
+
+run:    ## run every built program once
+	@bash scripts/ci-run-all.sh
+
+test:   ## build + run everything under 5.5.0 and the newest local trunk switch
+	@bash scripts/test-runtimes.sh
+
+# --- cleaning ---------------------------------------------------------------
+
+clean: clean-dune clean-data
+	@echo "Cleaning benchmark binaries and object files under $(CURDIR)"
 	@find . -type f \
 		-not -path "./.git/*" \
 		\( \
@@ -19,26 +42,21 @@ clean: clean-dune clean-with-deps clean-macrobenchmarks
 			-name "*.annot" -o \
 			-name "*.opt" -o \
 			-name "*-ocaml-*" -o \
-			-name "*-oxcaml-*" \
+			-name "*-oxcaml-*" -o \
+			-name "*-mmtk*" \
 		\) -delete
+	@rm -rf ci-logs
 
 clean-dune:
 	@echo "Cleaning dune build directories under $(CURDIR)"
 	@find . -type d \( -name "_build" -o -name "_build-running" \) -prune -exec rm -rf {} +
 
-# Remove generated input data files produced by build.deps.sh scripts.
-# These are runtime-version-independent and recreated automatically on next build.
-clean-with-deps:
-	@echo "Cleaning generated input data under $(CURDIR)/with_deps"
+# Generated input data produced by the *.build.deps.sh scripts. Runtime-version
+# independent, so it is generated once and shared across every runtime in a
+# sweep — which is also why `clean` regenerating it costs real time.
+clean-data:
+	@echo "Cleaning generated input data under $(CURDIR)"
 	@rm -f with_deps/graph500seq/edges.data
 	@rm -f with_deps/benchmarksgame/input*.txt
 	@rm -f multicore/graph500par/edges.data
-
-# Remove generated output files from macrobenchmark runs.
-clean-macrobenchmarks:
-	@echo "Cleaning generated macrobenchmark outputs under $(CURDIR)/macrobenchmarks"
-	@rm -f macrobenchmarks/menhir/sysver.automaton
-	@rm -f macrobenchmarks/menhir/sysver.conflicts
-	@rm -f macrobenchmarks/menhir/sysver.ml
-	@rm -f macrobenchmarks/coq/*.glob
-	@rm -f macrobenchmarks/coq/.*.aux
+	@rm -f simple/minilight/*.ppm

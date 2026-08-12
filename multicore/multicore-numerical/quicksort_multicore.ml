@@ -41,7 +41,11 @@ let rec quicksort arr low high d pool =
 let () =
   let pool = T.setup_pool ~num_domains:(num_domains - 1) () in
   let arr = Array.init n (fun _ -> Random.int n) in
-  quicksort arr 0 (Array.length arr - 1) num_domains pool;
+  (* [T.await] performs an effect that only [T.run] (or a pool worker) handles,
+     so calling [quicksort] straight from the main domain raised
+     Effect.Unhandled(Task.Wait). Every other _multicore benchmark here wraps
+     its top-level call the same way. *)
+  T.run pool (fun () -> quicksort arr 0 (Array.length arr - 1) num_domains pool);
   (* for i = 0 to  Array.length arr - 1 do
     print_int arr.(i);
     print_string "  "

@@ -144,19 +144,6 @@ signature in OCaml 5.x.
 
 ---
 
-## decompress: API update to 1.5.3
-
-**Affects:** `with_packages/decompress/test_decompress.ml`
-
-The `decompress` library changed its API in version 1.5.3:
-
-| Change | sandmark | benches |
-|---|---|---|
-| `~i`/`~o` labels | labeled (`~i:buf ~o:buf`) | positional |
-| Window type | `De.window` | `De.Lz77.window` |
-| `uncompress` return | `unit` | `(unit, error) result` |
-
----
 
 ## graph500seq / graph500par: `graphTypes.ml` extracted
 
@@ -222,23 +209,6 @@ installed.
 
 ---
 
-## owl/owl_gc: `owl` → `owl-base` in dune
-
-**Affects:** `with_packages/owl/dune`
-
-Sandmark's dune uses `(libraries owl unix)`, which pulls in the full `owl`
-package including CBLAS and LAPACK C bindings. `owl_gc.ml` does not use any
-BLAS/LAPACK operations — the matrix multiplications in `Mat.dot` are
-exercising GC behaviour via `Bigarray` allocation, not numerical performance.
-
-The ported dune uses `(libraries owl-base unix)`. `owl-base` is the pure
-OCaml subset of Owl that provides identical module APIs (`Owl`,
-`Owl_dense_matrix_d`, `Owl_dense_ndarray_d`) without C stubs, making the
-benchmark buildable on any platform without a BLAS installation.
-
-**Source file:** identical to sandmark.
-
----
 
 ## simple-tests/capi: `(modes native)` added to dune
 
@@ -300,24 +270,6 @@ incompatible with irmin 3.x and would require adaptation.
 
 ---
 
-## macrobenchmarks: no source adaptations
-
-**Affects:** `macrobenchmarks/` (alt-ergo, coq, cpdf, cubicle, frama-c, menhir)
-
-These benchmarks install external tools via opam and benchmark the installed
-binary — there are no local source files to adapt. The build scripts
-(`<tool>.build.sh`) and input data files (`.why`, `.v`, `.pdf`, `.cub`, `.c`,
-`.mly`) are taken from sandmark's `benchmarks/<tool>/` directories unchanged.
-
-The only adaptation is the build approach: sandmark used dune aliases and
-project-level dependencies to build these tools; the ported versions use
-`opam install <tool> -y` (into the per-runtime switch created by
-`opam-compiler`) and copy the resulting binary.
-
-See `BENCHMARK_INCOMPATIBILITIES.md` for version constraints (cubicle requires
-OCaml < 5.0; frama-c is blocked by transitive deps on OCaml < 5.5).
-
----
 
 ## weak_htbl: Hashtbl.S signature change (OCaml 5.6+)
 
@@ -338,3 +290,41 @@ Error: Signature mismatch:
 `HashS` (the minimal signature that `Test` actually uses: `create`, `clear`,
 `add`, `replace`, `remove`, `find`, `iter`). This avoids depending on the
 full `Hashtbl.S` signature and works across all OCaml versions (4.14+).
+
+---
+
+## fannkuchredux: don't advance past the last permutation (2026-08-10)
+
+**Affects:** `simple/fannkuchredux/fannkuchredux.ml`,
+`multicore/multicore-numerical/fannkuchredux_multicore.ml`
+
+Both died with `Invalid_argument("index out of bounds")` for *every* `n`, on
+every runtime — they had never produced a result. `fr` calls `Perm.next` once
+per counted permutation, including the last one, so the final worker chunk
+(`hi = n!`) advances past the end of the permutation sequence and `Perm.next`
+indexes `c` out of bounds.
+
+Sandmark never sees this because it compiles the benchmark with `-unsafe`,
+which removes the bounds check and lets the stray read pass silently. The dune
+port here builds with `(ocamlopt_flags (:standard -O3))` and no `-unsafe`, so
+the latent out-of-bounds became a hard failure.
+
+**Fix:** guard the advance — `if i < red_hi then Perm.next p`. The permutation
+produced by that final `next` was never counted, so the result is unchanged:
+both now print the reference values for `n = 11` (checksum `556355`,
+`Pfannkuchen(11) = 51`).
+
+---
+
+## quicksort_multicore: wrap the top-level call in `Task.run` (2026-08-10)
+
+**Affects:** `multicore/multicore-numerical/quicksort_multicore.ml`
+
+Failed on every run with `Effect.Unhandled(Domainslib__Task.Wait(_, _))`.
+`T.await` performs an effect that is only handled inside `T.run` (or on a pool
+worker), and `quicksort` was called straight from the main domain.
+
+**Fix:** `T.run pool (fun () -> quicksort arr 0 (Array.length arr - 1)
+num_domains pool)`, matching every other `*_multicore` benchmark in the
+directory (`mergesort_multicore`, `nqueens_multicore`,
+`LU_decomposition_multicore`, …).
