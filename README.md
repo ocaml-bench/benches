@@ -180,7 +180,7 @@ so the compiler, `dune`, and any installed packages are on `PATH`. It reads:
 | `RUNNING_OCAML_BENCH_DIR` | the benchmark's own directory |
 | `RUNNING_OCAML_OUTPUT` | where to write the binary (absolute) |
 | `RUNNING_OCAML_RUNTIME_NAME` | runtime tag, e.g. `ocaml-5.5.0` |
-| `RUNNING_OCAML_SWITCH` | the active opam switch |
+| `RUNNING_OCAML_SWITCH` | the active opam switch (exported for parity with macro-benches; no script here needs it) |
 
 and must leave an executable at `RUNNING_OCAML_OUTPUT`. Most scripts are four
 lines: `dune build --root "$BENCH_DIR" --profile release <target>.exe`, then copy
@@ -188,6 +188,14 @@ the result. A benchmark needing runtime-independent generated input (a graph edg
 list, a FASTA file) puts it in a companion `<name>.build.deps.sh` that the build
 script calls first and that skips itself if the data already exists — so the data
 is generated once and shared across every runtime in a sweep.
+
+[macro-benches uses the same
+contract](https://github.com/ocaml-bench/macro-benches#build-script-contract) —
+same variable names, same "leave an executable at `RUNNING_OCAML_OUTPUT`" — with
+two additions its benchmarks need and these don't: `RUNNING_OCAML_SWITCH_PREFIX`
+(for the three benchmarks that run the runtime's own compiler as the workload),
+and dispatch on the output filename when one script backs several programs.
+Change one side of the contract, check the other.
 
 ## Layout
 

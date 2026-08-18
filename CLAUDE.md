@@ -189,8 +189,16 @@ Both benchmark repos present the *same* interface to running-ng. Verified
 | running-ng config | `base/ocaml/micro_base.yml` | `base/ocaml/macro_base.yml` |
 
 macro-benches reading two extra env vars is a superset, not a divergence: only
-`ocamlc-self-compile` and `jsoo` need them, because they run the runtime's *own*
-compiler as the workload. running-ng always exports all five.
+`ocamlc-self-compile`, `ocamlc-compile-uucp` and `jsoo` need them, because they
+run the runtime's *own* compiler as the workload. running-ng always exports all
+five; no build script *here* reads `RUNNING_OCAML_SWITCH`, it just tolerates it.
+
+The other asymmetry is what selects the program when one script backs several.
+There, `RUNNING_OCAML_OUTPUT` is load-bearing: macro-benches scripts case on its
+basename to pick the dune target. Here, programs sharing a script always build
+the *same* binary and differ only in the arguments the config passes, so nothing
+parses the output name. Don't add output-name dispatch here without saying so in
+`manifest.yml` — `make check` can't see it.
 
 **Deliberately different — and why:**
 
