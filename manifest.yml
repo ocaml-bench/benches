@@ -62,7 +62,7 @@ suites:
     timeout: 120
   multicore-minilight:
     type: OCamlMulticoreBenchmarkSuite
-    timeout: 30
+    timeout: 120
   graph500par:
     type: OCamlMulticoreBenchmarkSuite
     timeout: 300
@@ -619,7 +619,7 @@ programs:
   weak_htbl:
     suite: sandmark-sequential
     path: simple/simple-tests
-    args: "1000"
+    args: "20000000"
   capi_no_args_alloc:
     suite: sandmark-sequential
     path: simple/capi
@@ -735,7 +735,7 @@ programs:
   algorithmic_differentiation:
     suite: multicore-effects
     path: multicore/multicore-effects
-    args: "100"
+    args: "300000"
   rec_eff_fib:
     suite: multicore-effects
     path: multicore/multicore-effects
@@ -763,7 +763,7 @@ programs:
   effect_throughput_val:
     suite: multicore-effects
     path: multicore/multicore-effects
-    args: "1_000_000"
+    args: "1_000_000_000"
   effect_throughput_perform:
     suite: multicore-effects
     path: multicore/multicore-effects
@@ -785,7 +785,7 @@ programs:
   rec_seq_evenodd:
     suite: multicore-effects
     path: multicore/multicore-effects
-    args: "2 5000000"
+    args: "20 500000000"
   rec_eff_motzkin:
     suite: multicore-effects
     path: multicore/multicore-effects
@@ -823,7 +823,7 @@ programs:
   test_spsc_queue_sequential:
     suite: multicore-structures
     path: multicore/multicore-structures
-    args: "1000"
+    args: "100000"
   test_spsc_queue_parallel:
     suite: multicore-structures
     path: multicore/multicore-structures
@@ -937,7 +937,7 @@ programs:
   minilight_multicore:
     suite: multicore-minilight
     path: multicore/multicore-minilight
-    args: "${RUNNING_BENCH_DIR}/multicore/multicore-minilight/roomfront.ml.txt"
+    args: "4 ${RUNNING_BENCH_DIR}/multicore/multicore-minilight/roomfront.ml.txt"
 
   # --- graph500par -------------------------------------------------
   kernel1_run_multicore:
