@@ -328,3 +328,50 @@ worker), and `quicksort` was called straight from the main domain.
 num_domains pool)`, matching every other `*_multicore` benchmark in the
 directory (`mergesort_multicore`, `nqueens_multicore`,
 `LU_decomposition_multicore`, …).
+
+
+## minilight_multicore: force the triangle lazies before the domains start (2026-09-18)
+
+**Affects:** `multicore/multicore-minilight/triangle.ml`
+
+`Triangle.obj` computes `normal`, `tangent` and `area` as `lazy` fields, forced
+through the methods of the same name. The scene is built on one domain, then
+`Domainslib.Task` renders it on several, all sharing the same triangle objects.
+OCaml 5's `Lazy` is not safe for concurrent forcing: when two domains force the
+same not-yet-forced lazy, the second sees it mid-force and the program dies with
+
+```
+Fatal error: exception CamlinternalLazy.Undefined
+```
+
+The race window is only the first touch of each triangle, so it is lost
+nondeterministically and the benchmark usually completes. That is why it went
+unnoticed: before the argv fix in #6 the program took the help path and exited
+in 1 ms without rendering, so no domain ever touched a triangle.
+
+Measured on a 16-core Ryzen, one iteration of `roomfront.ml.txt` with 16
+domains, 60 runs each:
+
+| | failures |
+|---|---|
+| sandmark's source | 35 / 60 |
+| with this change | 0 / 60 |
+
+At the manifest's own settings (4 domains, 100 iterations) it still failed
+roughly one run in three on that machine, and it is what CI hit on 2026-09-18.
+
+The fix is an `initializer` on the class that forces all three lazies while the
+scene is still single-threaded. The fields stay `lazy`, so the methods keep the
+same shape and cost and the rendering hot path is unchanged; they are simply
+already forced by the time any domain runs. `normal`, `tangent` and `area` are
+pure functions of the vertices and are computed unconditionally, so forcing them
+early cannot change a result. Runtime is unchanged: 8.06 s against 8.17 s for a
+run of the original that happened to win the race.
+
+Eager `let` bindings would have worked too, but they would drop the `Lazy.force`
+indirection from the measured path.
+
+**Source files:** otherwise identical to sandmark. The sequential `minilight`
+has the same `lazy` fields and does not need the change, having one domain.
+
+---
