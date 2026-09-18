@@ -60,6 +60,19 @@ object (__)
    val reflectivity_m = vClamp vZero vOne     (List.nth vectors_c 1)
    val emitivity_m    = vClamp vZero vMaximum (List.nth vectors_c 0)
 
+   (* Force the three lazy fields here, while the scene is still being built on
+      one domain.  Triangles are shared by every rendering domain, and forcing
+      the same unforced lazy from two domains at once raises
+      CamlinternalLazy.Undefined -- OCaml 5's Lazy is not safe for concurrent
+      forcing.  The race window is only the first touch of each triangle, so it
+      loses rarely and nondeterministically.  The lazies stay lazy so the
+      methods below keep the same shape and cost; they are simply already
+      forced by the time any domain runs. *)
+   initializer
+      ignore (Lazy.force normal : vT);
+      ignore (Lazy.force tangent : vT);
+      ignore (Lazy.force area : float)
+
 
 (* implementation ----------------------------------------------------------- *)
 
