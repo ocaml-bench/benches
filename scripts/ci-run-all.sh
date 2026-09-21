@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
-# ci-run-all.sh — run every program in manifest.yml exactly once.
-#
-# This is a correctness gate, not a measurement: one invocation, no olly, no
-# perf, no core pinning, wall time reported only so an obvious blow-up is
-# visible. Real numbers come from running-ng on dedicated hardware.
-#
-# Each program runs with its manifest args (identical to running-ng's) from a
-# fresh scratch working directory, so relative outputs (minilight's .ppm) land
-# there and not in the source tree.
-#
-# Like ci-build-all.sh it runs everything before failing, and exits 1 if any
-# program exited non-zero or hit its timeout.
+# ci-run-all.sh: run every program in manifest.yml once, with its manifest args,
+# from a scratch cwd. A correctness gate, not a measurement. Runs everything
+# before failing; exits 1 if any program exited non-zero or timed out.
 #
 # Environment:
 #   RUNNING_OCAML_RUNTIME_NAME  runtime tag, matching the build (default: ci)
@@ -59,25 +50,21 @@ while IFS=$'\t' read -r name path _script timeout_s args; do
   cwd="${SCRATCH}/${name}"
   mkdir -p "${cwd}"
 
-  # Manifest args are plain paths and numbers — word splitting is what we want.
+  # Manifest args are plain paths and numbers; word splitting is intended.
   read -ra argv <<< "${args}"
 
   start=${SECONDS}
-  # Keep only the tail of the output. Several benchmarks write their result to
-  # stdout in bulk — fasta3/fasta6/revcomp2 emit ~243 MB of FASTA each,
-  # mandelbrot6 a 31 MB PBM — which is 776 MB of logs per runtime if kept whole.
-  # `tail -c` (not `head -c`) because tail drains the pipe: truncating from the
-  # front would SIGPIPE the benchmark and change the exit code we are checking.
-  # The exit status we want is the benchmark's, hence PIPESTATUS[0].
+  # Keep only the tail: fasta3/fasta6/revcomp2 write ~243 MB to stdout each.
+  # `tail -c`, not `head -c`: head would SIGPIPE the benchmark and change the
+  # exit code being checked (PIPESTATUS[0]).
   ( cd "${cwd}" && timeout --kill-after=30s "${timeout_s}" "${exe}" "${argv[@]}" ) 2>&1 \
     | tail -c "${LOG_TAIL_BYTES:-65536}" > "${log}"
   rc=${PIPESTATUS[0]}
   elapsed=$((SECONDS - start))
 
-  # 124 is GNU timeout's "timed out"; 137 is SIGKILL from --kill-after. uutils
-  # coreutils returns 125 instead of 124 when --kill-after is set, and 125
-  # otherwise means "timeout itself failed" — so disambiguate that one by
-  # whether the clock actually ran out.
+  # 124 = GNU timeout expired, 137 = SIGKILL from --kill-after. uutils timeout
+  # returns 125 with --kill-after, but 125 also means "timeout itself failed",
+  # so disambiguate by whether the clock ran out.
   timed_out=0
   case ${rc} in
     124|137) timed_out=1 ;;

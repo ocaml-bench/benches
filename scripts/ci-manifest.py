@@ -1,40 +1,15 @@
 #!/usr/bin/env python3
 """Read manifest.yml for the build/run scripts.
 
-Modes:
+  ci-manifest.py list    one TAB-separated row per program:
+                         name  path  build_script  timeout  args
+                         (args last: an empty middle field would collapse under bash's IFS)
+  ci-manifest.py check   verify the manifest against the tree (what `make check` runs).
+                         --running-ng [<micro_base.yml>] also diffs programs and args
+                         against running-ng's sweep config; opt-in, the only thing here
+                         that looks outside this repo.
 
-  ci-manifest.py list          one TAB-separated row per program:
-                                    name  path  build_script  timeout  args
-                                  (${RUNNING_BENCH_DIR} already expanded)
-
-                                  `args` is last on purpose: bash treats TAB as
-                                  whitespace-IFS, so an empty field in the middle
-                                  of a row would collapse and shift every later
-                                  column.
-
-  ci-manifest.py check         verify the manifest against the tree:
-                                    - every program's dir and build script exist
-                                    - every build script in the tree is claimed
-                                      by a program or listed under `disabled`
-                                    - every in-tree input path in `args` exists
-                                    - every program names a declared suite
-                                  Reads nothing outside this repo. This is what
-                                  `make check` and CI run.
-
-                                  --running-ng [<micro_base.yml>] additionally
-                                  diffs the program set and every `args` string
-                                  against running-ng's sweep config. Opt-in, and
-                                  the ONLY thing in this repo that looks outside
-                                  it: benches builds, runs and tests itself
-                                  standalone, so never fold this into `check`.
-
-Filters (list only):
-  --only "a b c"     restrict to these program names
-  --suite NAME       restrict to one suite
-  --runtime-kind K   drop programs whose `requires:` does not match K
-                     (default "ocaml"; use "oxcaml" for an OxCaml runtime)
-
-Kept deliberately small: the shell scripts do the work, this only parses.
+Filters (list only): --only "a b c", --suite NAME, --runtime-kind K (default ocaml).
 """
 
 import argparse
@@ -49,7 +24,6 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parent.parent
 MANIFEST = ROOT / "manifest.yml"
-# Benchmarks live two levels down: <group>/<benchmark-dir>/<name>.build.sh
 SCRIPT_GLOB = "*/*/*.build.sh"
 
 
@@ -59,8 +33,7 @@ def load():
 
 
 def expand(s):
-    # The manifest uses running-ng's ${RUNNING_BENCH_DIR} spelling so the two
-    # arg lists can be diffed mechanically.
+    # running-ng's spelling, so the two arg lists can be diffed mechanically.
     return (s or "").replace("${RUNNING_BENCH_DIR}", str(ROOT))
 
 
@@ -118,17 +91,9 @@ def cmd_check(args):
             continue
         claimed.add(str(s.relative_to(ROOT)))
 
-        # In-tree input files named in args must exist — this catches a benchmark
-        # added without committing its input. But six of them take an input the
-        # build *generates* (graph500's edges.data, benchmarksgame's FASTA), which
-        # is gitignored and absent on a fresh checkout. `check` runs before the
-        # build, so requiring those would fail on every clean tree, CI included.
-        #
-        # They opt out with `inputs_generated: true` (same field and meaning as
-        # macro-benches). That is an assertion, not a waiver: a program claiming
-        # it must have a <name>.build.deps.sh in its directory to back the claim,
-        # since that is the convention for generating runtime-independent input
-        # once and reusing it across every runtime in a sweep.
+        # Inputs named in args must exist, except generated ones (inputs_generated:
+        # true), which are gitignored and absent before the build; that claim must
+        # be backed by a *.build.deps.sh in the program's directory.
         if p.get("inputs_generated"):
             if not list(d.glob("*.build.deps.sh")):
                 problems.append(

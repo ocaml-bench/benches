@@ -48,8 +48,18 @@ backlog.
   sibling repo. running-ng is *a* consumer of these benchmarks, not a
   dependency. Keep the coupling opt-in (`make check-running-ng`).
 - **Don't commit built binaries** (`*-<runtime>`), `ci-logs/`, or generated data.
-- Keep documentation consistent with every commit: `README.md`, the relevant
-  `docs/benchmarks/<group>.md`, and this file.
+- Keep this file consistent with every commit. For `README.md` and
+  `docs/benchmarks/<group>.md`, follow the docs rule below.
+- **Human-facing docs are written by a human.** `README.md` and every other
+  `.md` file except this one are maintained by hand. When a change calls for a
+  docs update, do not edit the prose. Put an invisible HTML comment next to the
+  passage that needs to change, saying what changed and what the text should
+  now say: `<!-- TODO(docs): ... -->` (it does not render). When a PR is being
+  prepared, list every such comment so they can be resolved by hand before
+  merge: `grep -rn 'TODO(docs)' --include='*.md' .`
+- **Comments only where the code is not self-explanatory.** Never add a comment
+  that restates the code. Where one is needed, keep it short and explain the
+  intent or the non-obvious constraint at a high level, for a human reader.
 
 ## Where things live (read first)
 

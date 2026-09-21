@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# graph500par.build.deps.sh — generates edges.data using a locally-built gen binary.
-#
-# Called by kernel1_run_multicore.build.sh when edges.data does not yet exist.
-# edges.data is independent of the OCaml runtime version, so it is generated
-# once and shared across all runtime builds.
+# edges.data is independent of the OCaml runtime, so it is generated once and shared by every runtime build.
 set -euo pipefail
 
 BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(cd "$(dirname "$0")" && pwd)}"
