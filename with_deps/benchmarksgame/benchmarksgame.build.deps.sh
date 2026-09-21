@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# benchmarksgame.build.deps.sh — generates FASTA input files using fasta3.exe.
-#
-# Called by each benchmark's build script when input data does not yet exist.
-# Both input files are independent of the OCaml runtime version, so they are
-# generated once and shared across all runtime builds.
+# The FASTA inputs are independent of the OCaml runtime, so they are generated once and shared by every runtime build.
 set -euo pipefail
 
 BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(cd "$(dirname "$0")" && pwd)}"

@@ -1,22 +1,13 @@
 #!/usr/bin/env bash
-# ci-build-all.sh — build every program in manifest.yml with the compiler on PATH.
-#
-# Deliberately does NOT stop at the first failure: a compiler change usually
-# breaks several benchmarks at once, and one run should show all of them.
-# Prints a result table, writes it to $GITHUB_STEP_SUMMARY under GitHub Actions,
-# and exits 1 if any program failed to build.
-#
-# Per-program build logs go to $LOG_DIR (default ci-logs/build/<runtime tag>).
-#
-# Programs that share a build script (all twelve `string_bench_*`, say) each get
-# their own invocation, exactly as running-ng does it — dune makes the repeats
-# nearly free, and it keeps this script honest about the real contract.
+# ci-build-all.sh: build every program in manifest.yml with the compiler on PATH.
+# Does not stop at the first failure; prints a result table (also to
+# $GITHUB_STEP_SUMMARY under GitHub Actions) and exits 1 if any build failed.
+# Programs sharing a build script are each built separately, as running-ng does.
 #
 # Environment:
 #   RUNNING_OCAML_RUNTIME_NAME  runtime tag; binaries are <name>-<tag> (default: ci)
-#   RUNTIME_KIND                ocaml (default) | oxcaml — selects programs whose
-#                               `requires:` matches
-#   LOG_DIR                     where to write per-program logs
+#   RUNTIME_KIND                ocaml (default) | oxcaml; selects programs whose `requires:` matches
+#   LOG_DIR                     where to write per-program logs (default ci-logs/build/<tag>)
 #   ONLY                        space-separated program names (default: all)
 #   SUITE                       restrict to one manifest suite
 set -uo pipefail
@@ -49,8 +40,7 @@ while IFS=$'\t' read -r name path script _timeout _args; do
   log="${LOG_DIR}/${name}.log"
   count=$((count + 1))
 
-  # Force a real build even if a stale binary from a previous compiler is lying
-  # around: leaving it in place would make a build failure look like a success.
+  # A stale binary from a previous compiler would make a failed build look like a success.
   rm -f "${out}"
 
   printf '%-34s ' "${name}"

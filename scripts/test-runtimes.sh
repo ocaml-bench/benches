@@ -1,27 +1,10 @@
 #!/usr/bin/env bash
-# test-runtimes.sh — build and run the whole suite under several OCaml runtimes.
+# test-runtimes.sh: build and run the whole suite under several OCaml runtimes.
+# A build/run correctness gate, not a measurement (one invocation, no perf, no olly).
 #
-# The gate you want before trusting a sweep: it answers "does every benchmark in
-# this tree still build and still run, on each compiler I care about?" — and,
-# because it runs the same set on each, "did anything change between them?"
-#
-# For each runtime it activates that runtime's opam switch (the same
-# `opam env --set-switch` running-ng does, so the compiler *and* the pinned dune
-# come from the switch), then runs scripts/ci-build-all.sh and scripts/ci-run-all.sh.
-# Nothing here measures performance: one invocation, no perf, no olly, no core
-# pinning. It is a build/run correctness gate.
-#
-# Usage:
-#   bash scripts/test-runtimes.sh                    # 5.5.0 + newest trunk switch
-#   bash scripts/test-runtimes.sh 5.5.0 trunk-c0f8c8ce
-#   SKIP_RUN=1 bash scripts/test-runtimes.sh         # build phase only
-#   ONLY="almabench bdd" bash scripts/test-runtimes.sh
-#
-# Each argument NAME is a running-ng runtime suffix: it selects the opam switch
-# `running-ng-ocaml-NAME` and tags binaries `<program>-ocaml-NAME`, matching what
-# running-ng itself produces — so a tree left behind by this script is exactly
-# the tree a sweep would find, and vice versa.
-#
+# Usage: bash scripts/test-runtimes.sh [NAME...]   (default: 5.5.0 + newest trunk switch)
+#   NAME is a running-ng runtime suffix: it selects opam switch running-ng-ocaml-NAME
+#   and tags binaries <program>-ocaml-NAME, matching what running-ng produces.
 # Environment:
 #   SWITCH_PREFIX  opam switch name prefix (default: running-ng-ocaml-)
 #   SKIP_RUN       set to skip the run phase
@@ -33,8 +16,6 @@ BENCH_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SWITCH_PREFIX="${SWITCH_PREFIX:-running-ng-ocaml-}"
 LOG_ROOT="${LOG_ROOT:-${BENCH_DIR}/ci-logs}"
 
-# Default: the 5.5.0 release plus whichever trunk switch is newest on this
-# machine, which is what "5.5.0 vs latest trunk" means in practice here.
 if [ $# -eq 0 ]; then
   newest_trunk="$(opam switch list --short 2>/dev/null \
     | grep "^${SWITCH_PREFIX}trunk-" \
@@ -73,8 +54,8 @@ for name in "$@"; do
     continue
   fi
 
-  # Same activation running-ng performs: compiler and pinned dune both come from
-  # the runtime switch. Done in a subshell so one runtime cannot leak into the next.
+  # Same `opam env --set-switch` as running-ng (compiler and pinned dune both come
+  # from the switch); subshell so it cannot leak into the next runtime.
   (
     eval "$(opam env --switch="${switch}" --set-switch)"
     echo "compiler: $(ocamlopt -version)   dune: $(dune --version)"
@@ -92,8 +73,7 @@ for name in "$@"; do
       run_rc=$?
     fi
 
-    # Fold both phases into one exit status the parent can read: 0 clean,
-    # 1 build broke, 2 run broke, 3 both.
+    # Exit status bits: 1 = build broke, 2 = run broke.
     exit $(( (build_rc != 0 ? 1 : 0) + (run_rc != 0 ? 2 : 0) ))
   )
   rc=$?

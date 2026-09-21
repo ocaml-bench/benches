@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# graph500seq.build.deps.sh — generates edges.data using gen.exe.
-#
-# Called by graph500seq.build.sh when edges.data does not yet exist.
-# edges.data is independent of the OCaml runtime version, so it is generated
-# once and shared across all runtime builds.
+# edges.data is independent of the OCaml runtime, so it is generated once and shared by every runtime build.
 set -euo pipefail
 
 BENCH_DIR="${RUNNING_OCAML_BENCH_DIR:-$(cd "$(dirname "$0")" && pwd)}"

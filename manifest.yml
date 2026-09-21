@@ -1,40 +1,13 @@
-# manifest.yml — the programs this tree can build and run.
+# manifest.yml: the programs this tree can build and run. `make check`
+# validates it against the tree; scripts/ci-build-all.sh, ci-run-all.sh and
+# test-runtimes.sh read it.
 #
-# Why this file exists: a build script alone is not enough to know what to run.
-# Many scripts are shared by several programs that differ only in their
-# arguments (one `stdlib/string_bench.build.sh`, twelve `string_bench_*`
-# programs), so "run every */*/*.build.sh" tells you nothing about workloads.
-# Until now that program list lived only in running-ng's `micro_base.yml`, which
-# meant this repo could not check or test itself. scripts/ci-build-all.sh,
-# scripts/ci-run-all.sh and scripts/test-runtimes.sh read this file.
-#
-# This file is this repo's own source of truth. running-ng's
-# `base/ocaml/micro_base.yml` lists the same programs because it drives sweeps
-# over them, and `args` here are copied VERBATIM from it so the two can be
-# diffed mechanically (`make check-running-ng`) — but that diff is opt-in.
-# Nothing here needs a running-ng checkout: `make check`, the build and run
-# scripts, and CI all work from this file alone. ${RUNNING_BENCH_DIR} expands to
-# the root of this repo, keeping running-ng's spelling so the args match
-# character for character.
-#
-# Programs are run from a scratch working directory, so anything a benchmark
-# writes relatively (minilight's .ppm) lands there and not in the source tree.
-#
-# Adding a benchmark: add its entry here in the same commit as its build script.
-# `make check` fails if a program here has no build script, or a build script has
-# no program (unless it is listed under `disabled`). If you also drive sweeps
-# from running-ng, add the matching program to its micro_base.yml and confirm
-# with `make check-running-ng`.
-#
-# `build_script` defaults to <name>.build.sh and is only spelled out when a
-# script is shared by several programs.
-#
-# `inputs_generated: true` marks a program whose input is produced by the build
-# (a graph edge list, a FASTA file) rather than committed. Those files are
-# gitignored and absent on a fresh checkout, so `check` — which runs before the
-# build — must not require them. The claim is verified, not merely believed: the
-# program's directory must hold a <name>.build.deps.sh to back it. Same field
-# name and meaning as macro-benches' manifest.
+# `args` are copied verbatim from running-ng's micro_base.yml so the two can be
+# diffed (`make check-running-ng`); ${RUNNING_BENCH_DIR} is the root of this repo.
+# `build_script` defaults to <name>.build.sh.
+# `inputs_generated: true`: the input is produced by a <name>.build.deps.sh in
+# the program's directory rather than committed, so `check` does not require it.
+# `disabled`: build scripts in the tree that no program runs.
 
 default_timeout: 120
 
@@ -723,8 +696,7 @@ programs:
   test_sched:
     suite: sandmark-with-packages
     path: with_packages/test_sched
-    # Three args: num_domains tasks_to_spawn list_length. The old "2 1000" was
-    # missing the third and crashed on Sys.argv.(3) every run.
+    # num_domains tasks_to_spawn list_length; all three are required (Sys.argv.(3)).
     args: "2 1000000 1000"
   test_lwt:
     suite: sandmark-with-packages
@@ -776,8 +748,7 @@ programs:
     suite: multicore-effects
     path: multicore/multicore-effects
     args: "1000"
-  # Explicit size: the built-in default (2 x 500M) blows the suite's 120s
-  # timeout. Kept identical to rec_seq_evenodd so the pair stays comparable.
+  # The built-in default size (2 x 500M) blows the 120s timeout; keep identical to rec_seq_evenodd.
   rec_eff_evenodd:
     suite: multicore-effects
     path: multicore/multicore-effects
@@ -1000,11 +971,7 @@ programs:
     # Uses OxCaml-only prefetch intrinsics; skipped unless RUNTIME_KIND=oxcaml.
     requires: oxcaml
 
-# =============================================================================
-# Disabled — source is in the tree, no program runs it.
-# =============================================================================
-# Each of these has a build script but no entry above (and none in running-ng's
-# micro_base.yml either). Listed here so `check` does not flag the orphan script.
+# Build scripts in the tree that no program runs; listed so `check` does not flag them.
 disabled:
   contrast:
     path: with_packages/sauvola

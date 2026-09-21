@@ -1,5 +1,4 @@
-; graphTypes is defined in sandmark via a parent dune-project scope.
-; Defined here explicitly for standalone builds.
+; graphTypes: sandmark defines it in a parent dune-project scope; standalone builds need it here.
 (library (name graphTypes) (modules graphTypes))
 
 (library
