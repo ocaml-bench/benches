@@ -17,6 +17,12 @@
  (ocamlopt_flags (:standard -O3)))
 
 (executable
+ (name bytes_unaligned_bench)
+ (modules bytes_unaligned_bench)
+ (modes native)
+ (ocamlopt_flags (:standard -O3)))
+
+(executable
  (name hashtbl_bench)
  (modules hashtbl_bench)
  (modes native)

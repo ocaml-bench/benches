@@ -192,6 +192,36 @@ programs:
     path: simple/stdlib
     build_script: bytes_bench.build.sh
     args: "bytes_uppercase_ascii 1000000"
+  bytes_unaligned_bench_get_int64:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: bytes_unaligned_bench.build.sh
+    args: "bytes_unaligned_get_int64 4194304 4000"
+  bytes_unaligned_bench_set_int64:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: bytes_unaligned_bench.build.sh
+    args: "bytes_unaligned_set_int64 4194304 4000"
+  bytes_unaligned_bench_get_int32:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: bytes_unaligned_bench.build.sh
+    args: "bytes_unaligned_get_int32 4194304 2000"
+  bytes_unaligned_bench_set_int32:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: bytes_unaligned_bench.build.sh
+    args: "bytes_unaligned_set_int32 4194304 2000"
+  bytes_unaligned_bench_get_uint16:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: bytes_unaligned_bench.build.sh
+    args: "bytes_unaligned_get_uint16 4194304 1000"
+  bytes_unaligned_bench_set_uint16:
+    suite: sandmark-sequential
+    path: simple/stdlib
+    build_script: bytes_unaligned_bench.build.sh
+    args: "bytes_unaligned_set_uint16 4194304 1000"
   string_bench_get:
     suite: sandmark-sequential
     path: simple/stdlib
