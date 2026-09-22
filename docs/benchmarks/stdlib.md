@@ -15,6 +15,12 @@ data structures. Each takes `<bench_type> [args]` and dispatches to sub-benchmar
 - **Args:** `<bench_type>`
 - **Description:** Bytes buffer operations: blit, fill, sub, compare.
 
+### bytes_unaligned_bench
+- **Source:** custom benchmark (not from sandmark)
+- **Build:** ocamlopt (stdlib only)
+- **Args:** `<bench_type> <length> <iterations>`
+- **Description:** Unaligned `Bytes.get_int64_ne`/`set_int64_ne` and the 32- and 16-bit forms, striding a multi-MiB buffer from offset 3; sensitive to whether the backend emits a single unaligned load/store or a byte-at-a-time sequence.
+
 ### string_bench
 - **Source:** sandmark `benchmarks/stdlib/string_bench.ml`
 - **Build:** ocamlopt (stdlib only)
